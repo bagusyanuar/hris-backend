@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/bagusyanuar/hris-backend/infrastructure/config"
+	"github.com/bagusyanuar/hris-backend/internal/infrastructure/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )

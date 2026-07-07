@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/bagusyanuar/hris-backend/infrastructure/config"
-	"github.com/bagusyanuar/hris-backend/infrastructure/database"
+	"github.com/bagusyanuar/hris-backend/internal/infrastructure/config"
+	"github.com/bagusyanuar/hris-backend/internal/infrastructure/database"
 	"github.com/gofiber/fiber/v3"
 )
 

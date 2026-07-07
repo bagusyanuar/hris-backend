@@ -13,28 +13,29 @@ hris-backend/
 ├── cmd/                          # Entry point aplikasi
 │   └── api/
 │       └── main.go               # Inisialisasi app, dependency injection, & start server
-├── domain/                       # Core Business Logic (Layer Terluar secara Logika/Terpusat)
-│   ├── employee/                 # Domain Employee (Contoh Bounded Context)
-│   │   ├── entity.go             # Struct Entity & Value Objects
-│   │   ├── repository.go         # Interface Repository (Abstraksi data store)
-│   │   └── service.go            # Domain Service (jika memerlukan koordinasi antar Entity)
-│   └── attendance/               # Domain Attendance
-│       └── ...
-├── application/                  # Use Cases / Application Services
-│   ├── employee/
-│   │   └── service.go            # Application service (koordinasi transaksi, mapping DTO, read/write logic)
-│   └── DTOs / Request-Response structs
-├── infrastructure/               # Implementasi detail teknis & library pihak ketiga
-│   ├── database/                 # Postgres, MySQL, MongoDB setup
-│   ├── repository/               # Realisasi interface repo domain (e.g., Postgres implementation)
-│   │   └── employee_postgres.go
-│   ├── messaging/                # PubSub, Kafka, RabbitMQ
-│   └── config/                   # Konfigurasi aplikasi
-└── interfaces/                   # Interface luar / Presentation Layer
-    ├── http/                     # HTTP Handlers (Fiber v3)
-    │   ├── router.go
-    │   └── employee_handler.go
-    └── grpc/                     # gRPC Handlers (jika ada)
+├── internal/                     # Semua Core Logic dibungkus dalam folder internal
+│   ├── domain/                   # Core Business Logic (Terpusat)
+│   │   ├── employee/             # Domain Employee (Contoh Bounded Context)
+│   │   │   ├── entity.go         # Struct Entity & Value Objects
+│   │   │   ├── repository.go     # Interface Repository (Abstraksi data store)
+│   │   │   └── service.go        # Domain Service (jika memerlukan koordinasi antar Entity)
+│   │   └── attendance/           # Domain Attendance
+│   │       └── ...
+│   ├── application/              # Use Cases / Application Services
+│   │   ├── employee/
+│   │   │   └── service.go        # Application service (koordinasi transaksi, mapping DTO, read/write logic)
+│   │   └── DTOs / Request-Response structs
+│   ├── infrastructure/           # Implementasi detail teknis & library pihak ketiga
+│   │   ├── database/             # Postgres, GORM setup
+│   │   ├── repository/           # Realisasi interface repo domain (e.g., Postgres implementation)
+│   │   │   └── employee_postgres.go
+│   │   ├── messaging/            # PubSub, Kafka, RabbitMQ
+│   │   └── config/               # Konfigurasi aplikasi (Viper)
+│   └── interfaces/               # Interface luar / Presentation Layer
+│       ├── http/                 # HTTP Handlers (Fiber v3)
+│       │   ├── router.go
+│       │   └── employee_handler.go
+│       └── grpc/                 # gRPC Handlers (jika ada)
 ```
 
 ---
@@ -42,7 +43,7 @@ hris-backend/
 ## 2. Aturan Dependency (Dependency Rules)
 
 Mengikuti prinsip **Clean Architecture**:
-* **Domain Layer** adalah pusat aplikasi dan **TIDAK BOLEH** mengimport package dari layer lain (`application`, `infrastructure`, atau `interfaces`). Domain hanya berisi pure Go standard library dan struct bisnis.
+* **Domain Layer** adalah pusat aplikasi dan **TIDAK BOLEH** mengimport package dari layer lain (`application`, `infrastructure`, atau `interfaces` di bawah `internal`). Domain hanya berisi pure Go standard library dan struct bisnis.
 * **Application Layer** mengkoordinasikan bisnis flow. Layer ini mengimport `domain`, tetapi **TIDAK BOLEH** mengimport detail dari `infrastructure` secara langsung (harus melalui interface/abstraksi repo di domain).
 * **Infrastructure Layer** mengimplementasikan detail teknis (database, API client). Layer ini mengimport `domain` (untuk mengimplementasikan interface repo).
 * **Interfaces/Presentation Layer** menerima request dari luar (HTTP/gRPC/CLI), memanggil `application service`, dan mengembalikan response.

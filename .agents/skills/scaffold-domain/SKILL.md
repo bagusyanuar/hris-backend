@@ -11,18 +11,18 @@ Gunakan skill ini ketika user meminta untuk membuat modul domain baru (misalnya:
 
 Untuk setiap modul domain baru `<domain_name>`, buat file-file berikut:
 
-1. **Domain Layer** (`domain/<domain_name>/`):
+1. **Domain Layer** (`internal/domain/<domain_name>/`):
    - `entity.go`: Definisikan entity utama, value objects, constructor `New<EntityName>`, dan validasi bisnis.
    - `repository.go`: Definisikan interface `Repository` yang menggunakan `context.Context`.
    - `service.go` (Opsional): Buat jika ada logika bisnis yang mengoordinasikan beberapa entity.
 
-2. **Application Layer** (`application/<domain_name>/`):
+2. **Application Layer** (`internal/application/<domain_name>/`):
    - `service.go`: Definisikan application service untuk mengkoordinasikan transaksi dan use cases (read/write terpadu, tidak memakai CQRS).
 
-3. **Infrastructure Layer** (`infrastructure/repository/`):
+3. **Infrastructure Layer** (`internal/infrastructure/repository/`):
    - `<domain_name>_postgres.go` (atau DB target lainnya): Implementasikan interface repository dari domain.
 
-4. **Interfaces Layer** (`interfaces/http/`):
+4. **Interfaces Layer** (`internal/interfaces/http/`):
    - `<domain_name>_handler.go`: HTTP handler (Gin/Fiber) untuk memetakan request, validasi input dasar, memanggil application service, dan mengembalikan response JSON.
 
 ## Contoh Template Entity & Repository
@@ -74,11 +74,11 @@ type Repository interface {
 }
 ```
 
-### `infrastructure/repository/models/<domain_name>_model.go`
+### `internal/infrastructure/repository/models/<domain_name>_model.go`
 ```go
 package models
 
-import "github.com/bagusyanuar/hris-backend/domain/<domain_name>"
+import "github.com/bagusyanuar/hris-backend/internal/domain/<domain_name>"
 
 type <EntityName>Model struct {
 	ID   string `gorm:"primaryKey;type:varchar(50)"`
@@ -104,14 +104,14 @@ func FromDomain(entity *<domain_name>.<EntityName>) *<EntityName>Model {
 }
 ```
 
-### `infrastructure/repository/<domain_name>_postgres.go`
+### `internal/infrastructure/repository/<domain_name>_postgres.go`
 ```go
 package repository
 
 import (
 	"context"
-	"github.com/bagusyanuar/hris-backend/domain/<domain_name>"
-	"github.com/bagusyanuar/hris-backend/infrastructure/repository/models"
+	"github.com/bagusyanuar/hris-backend/internal/domain/<domain_name>"
+	"github.com/bagusyanuar/hris-backend/internal/infrastructure/repository/models"
 	"gorm.io/gorm"
 )
 
@@ -137,13 +137,13 @@ func (r *<EntityName>Repository) FindByID(ctx context.Context, id string) (*<dom
 }
 ```
 
-### `interfaces/http/<domain_name>_handler.go`
+### `internal/interfaces/http/<domain_name>_handler.go`
 ```go
 package http
 
 import (
 	"github.com/gofiber/fiber/v3"
-	"github.com/bagusyanuar/hris-backend/application/<domain_name>"
+	"github.com/bagusyanuar/hris-backend/internal/application/<domain_name>"
 )
 
 type <EntityName>Handler struct {
