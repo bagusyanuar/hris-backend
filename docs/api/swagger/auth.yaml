@@ -67,6 +67,20 @@ paths:
                 status: "error"
                 message: "Invalid credentials"
                 errors: "invalid email or password"
+        '422':
+          description: Unprocessable Entity - Validation failed
+          content:
+            application/json:
+              example:
+                code: 422
+                status: "error"
+                message: "Validation failed"
+                errors:
+                  email:
+                    - "Kolom email wajib diisi."
+                    - "Kolom email harus berupa alamat email yang valid."
+                  password:
+                    - "Kolom password minimal harus berisi 8 karakter."
 
   /auth/refresh:
     post:

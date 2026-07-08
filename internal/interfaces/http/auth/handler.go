@@ -5,12 +5,13 @@ import (
 
 	authApp "github.com/bagusyanuar/hris-backend/internal/application/auth"
 	"github.com/bagusyanuar/hris-backend/pkg/response"
+	"github.com/bagusyanuar/hris-backend/pkg/validator"
 	"github.com/gofiber/fiber/v3"
 )
 
 type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8"`
 }
 
 type Handler struct {
@@ -25,6 +26,10 @@ func (h *Handler) Login(c fiber.Ctx) error {
 	var req LoginRequest
 	if err := c.Bind().JSON(&req); err != nil {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
+	}
+
+	if validationErrs := validator.ValidateStruct(req); validationErrs != nil {
+		return response.Error(c, fiber.StatusUnprocessableEntity, "Validation failed", validationErrs)
 	}
 
 	tokenPair, err := h.service.Login(c.Context(), req.Email, req.Password)
