@@ -4,6 +4,7 @@ import (
 	"time"
 
 	authApp "github.com/bagusyanuar/hris-backend/internal/application/auth"
+	"github.com/bagusyanuar/hris-backend/pkg/response"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -23,16 +24,12 @@ func NewHandler(service *authApp.Service) *Handler {
 func (h *Handler) Login(c fiber.Ctx) error {
 	var req LoginRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid request body",
-		})
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
 	}
 
 	tokenPair, err := h.service.Login(c.Context(), req.Email, req.Password)
 	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return response.Error(c, fiber.StatusUnauthorized, "Invalid credentials", err.Error())
 	}
 
 	// Set HttpOnly Cookie for Refresh Token
@@ -48,7 +45,7 @@ func (h *Handler) Login(c fiber.Ctx) error {
 		SameSite: "Strict",
 	})
 
-	return c.JSON(fiber.Map{
+	return response.Success(c, fiber.StatusOK, "Login successful", fiber.Map{
 		"access_token": tokenPair.AccessToken,
 		"expires_in":   tokenPair.ExpiresIn,
 		"token_type":   "Bearer",
@@ -58,16 +55,12 @@ func (h *Handler) Login(c fiber.Ctx) error {
 func (h *Handler) Refresh(c fiber.Ctx) error {
 	refreshToken := c.Cookies("refresh_token")
 	if refreshToken == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "refresh token missing",
-		})
+		return response.Error(c, fiber.StatusUnauthorized, "Refresh token missing", nil)
 	}
 
 	tokenPair, err := h.service.Refresh(c.Context(), refreshToken)
 	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return response.Error(c, fiber.StatusUnauthorized, "Invalid or expired refresh token", err.Error())
 	}
 
 	// Set new HttpOnly Cookie for Refresh Token (Rotation)
@@ -83,7 +76,7 @@ func (h *Handler) Refresh(c fiber.Ctx) error {
 		SameSite: "Strict",
 	})
 
-	return c.JSON(fiber.Map{
+	return response.Success(c, fiber.StatusOK, "Token refreshed successfully", fiber.Map{
 		"access_token": tokenPair.AccessToken,
 		"expires_in":   tokenPair.ExpiresIn,
 		"token_type":   "Bearer",

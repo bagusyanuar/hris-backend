@@ -92,7 +92,7 @@ graph TD
 * Parsing request (JSON/Form binding, URL query parameter).
 * Validasi format input dasar (misal format email valid secara sintaksis, field mandatory terisi).
 * Panggil Application Service.
-* Mengembalikan response HTTP (Status Code, JSON payload).
+* Mengembalikan response HTTP menggunakan package `pkg/response` (`response.Success` atau `response.Error`) untuk menjamin standardisasi JSON (berisi `code`, `status`, `message`, `data`/`errors`). Pastikan field `data` mengembalikan `[]` jika array kosong (hindari `null` slice).
 
 ---
 

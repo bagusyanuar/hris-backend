@@ -34,9 +34,14 @@ docs {
   Berhasil login. Akan mengatur `refresh_token` di dalam HttpOnly Cookie.
   ```json
   {
-    "access_token": "eyJhbG...",
-    "expires_in": 3600,
-    "token_type": "Bearer"
+    "code": 200,
+    "status": "success",
+    "message": "Login successful",
+    "data": {
+      "access_token": "eyJhbG...",
+      "expires_in": 3600,
+      "token_type": "Bearer"
+    }
   }
   ```
 
@@ -44,7 +49,10 @@ docs {
   Format input salah atau ada payload wajib yang tidak dikirim.
   ```json
   {
-    "error": "invalid request body"
+    "code": 400,
+    "status": "error",
+    "message": "Invalid request body",
+    "errors": "invalid request body"
   }
   ```
 
@@ -52,7 +60,10 @@ docs {
   Email atau katasandi tidak valid.
   ```json
   {
-    "error": "invalid email or password"
+    "code": 401,
+    "status": "error",
+    "message": "Invalid credentials",
+    "errors": "invalid email or password"
   }
   ```
 }

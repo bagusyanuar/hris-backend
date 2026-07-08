@@ -24,8 +24,13 @@ docs {
   Token dikenali dan data user dikembalikan.
   ```json
   {
-    "user_id": "c8e82a31-b847-490b-85eb-e18e8f81e3a4",
-    "role": "employee"
+    "code": 200,
+    "status": "success",
+    "message": "Successfully retrieved data",
+    "data": {
+      "user_id": "c8e82a31-b847-490b-85eb-e18e8f81e3a4",
+      "role": "employee"
+    }
   }
   ```
 
@@ -33,7 +38,10 @@ docs {
   Token tidak disertakan, format salah, atau sudah expired.
   ```json
   {
-    "error": "invalid or expired token"
+    "code": 401,
+    "status": "error",
+    "message": "Unauthorized",
+    "errors": "invalid or expired token"
   }
   ```
 }

@@ -20,7 +20,7 @@ Lokasi: `docs/api/swagger/<domain>.yaml`
   - `summary` & `tags` (tag diisi nama domain).
   - `requestBody` jika ada, pastikan menandai field mana saja yang `required`.
   - Berikan `example` untuk setiap `properties`.
-  - Daftarkan **seluruh kemungkinan respons** (`responses`) dengan contoh JSON, seperti `200`, `201`, `400` (Bad Request), `401` (Unauthorized), dsb.
+  - Daftarkan **seluruh kemungkinan respons** (`responses`) dengan contoh JSON, seperti `200`, `201`, `400` (Bad Request), `401` (Unauthorized), dsb. Pastikan JSON example mengikuti standar `pkg/response` (berisi properti `code`, `status`, `message`, dan `data` atau `errors`).
 
 ### 2. Bruno Collection
 Lokasi: `docs/api/bruno/<Domain>/<EndpointName>.bru`
@@ -30,4 +30,4 @@ Lokasi: `docs/api/bruno/<Domain>/<EndpointName>.bru`
 - Wajib menambahkan blok `docs { ... }` (menggunakan format Markdown) di dalam file `.bru` yang minimal memuat:
   - Deskripsi singkat endpoint.
   - Penjelasan field *Request Body* beserta status `required`/`optional`.
-  - **Expected Responses**: Contoh block JSON aktual untuk status code `200`, `400`, `401`, dan seterusnya sesuai dengan yang didefinisikan di backend.
+  - **Expected Responses**: Contoh block JSON aktual untuk status code `200`, `400`, `401`, dan seterusnya sesuai dengan standar struktur balikan API (`{ "code": 200, "status": "success", "message": "...", "data": ... }`).

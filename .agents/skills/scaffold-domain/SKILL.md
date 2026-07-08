@@ -144,6 +144,7 @@ package <domain_name>
 import (
 	"github.com/gofiber/fiber/v3"
 	app<EntityName> "github.com/bagusyanuar/hris-backend/internal/application/<domain_name>"
+	"github.com/bagusyanuar/hris-backend/pkg/response"
 )
 
 type Handler struct {
@@ -160,11 +161,9 @@ func (h *Handler) Get(c fiber.Ctx) error {
 	
 	result, err := h.service.GetByID(ctx, id)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return response.Error(c, fiber.StatusNotFound, "Data not found", err.Error())
 	}
 	
-	return c.JSON(result)
+	return response.Success(c, fiber.StatusOK, "Successfully retrieved data", result)
 }
 ```

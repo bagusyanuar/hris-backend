@@ -42,21 +42,31 @@ paths:
           content:
             application/json:
               example:
-                access_token: "eyJhbGciOiJIUzI1NiIsInR5c..."
-                expires_in: 3600
-                token_type: "Bearer"
+                code: 200
+                status: "success"
+                message: "Login successful"
+                data:
+                  access_token: "eyJhbGciOiJIUzI1NiIsInR5c..."
+                  expires_in: 3600
+                  token_type: "Bearer"
         '400':
           description: Bad Request - Missing required fields or invalid format
           content:
             application/json:
               example:
-                error: "invalid request body"
+                code: 400
+                status: "error"
+                message: "Invalid request body"
+                errors: "invalid request body"
         '401':
           description: Unauthorized - Email or password does not match
           content:
             application/json:
               example:
-                error: "invalid email or password"
+                code: 401
+                status: "error"
+                message: "Invalid credentials"
+                errors: "invalid email or password"
 
   /auth/refresh:
     post:
@@ -75,12 +85,19 @@ paths:
           content:
             application/json:
               example:
-                access_token: "eyJhbGciOiJIUzI1NiIsInR5c..."
-                expires_in: 3600
-                token_type: "Bearer"
+                code: 200
+                status: "success"
+                message: "Token refreshed successfully"
+                data:
+                  access_token: "eyJhbGciOiJIUzI1NiIsInR5c..."
+                  expires_in: 3600
+                  token_type: "Bearer"
         '401':
           description: Unauthorized - Refresh token missing from cookies or expired
           content:
             application/json:
               example:
-                error: "invalid or expired token"
+                code: 401
+                status: "error"
+                message: "Invalid or expired refresh token"
+                errors: "invalid or expired token"
