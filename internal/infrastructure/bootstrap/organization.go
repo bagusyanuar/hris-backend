@@ -13,13 +13,13 @@ import (
 func InitOrganizationModule(db *gorm.DB, api fiber.Router) {
 	// Initialize Repository
 	orgRepo := repository.NewOrganizationRepository(db)
-	
+
 	// Initialize Application Service
 	orgService := applicationOrg.NewService(orgRepo)
-	
+
 	// Initialize HTTP Handler
 	orgHandler := httpOrg.NewHandler(orgService)
-	
+
 	// Register Routes
 	httpOrg.RegisterRoutes(api, orgHandler)
 }

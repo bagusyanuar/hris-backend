@@ -53,14 +53,14 @@ func (s *Service) UpdateDepartment(ctx context.Context, id string, req UpdateDep
 	if err != nil {
 		return nil, err
 	}
-	
+
 	dept.Code = req.Code
 	dept.Name = req.Name
 	dept.ParentID = req.ParentID
 	if req.IsActive != nil {
 		dept.IsActive = *req.IsActive
 	}
-	
+
 	if err := s.repo.UpdateDepartment(ctx, dept); err != nil {
 		return nil, err
 	}

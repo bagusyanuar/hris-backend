@@ -63,11 +63,11 @@ type UpdateJobPositionRequest struct {
 }
 
 type JobPositionResponse struct {
-	ID             string `json:"id"`
-	DepartmentID   string `json:"department_id"`
-	JobTitleID     string `json:"job_title_id"`
-	Name           string `json:"name"`
+	ID             string  `json:"id"`
+	DepartmentID   string  `json:"department_id"`
+	JobTitleID     string  `json:"job_title_id"`
+	Name           string  `json:"name"`
 	ReportsToID    *string `json:"reports_to_id,omitempty"`
-	HeadcountQuota int    `json:"headcount_quota"`
-	IsActive       bool   `json:"is_active"`
+	HeadcountQuota int     `json:"headcount_quota"`
+	IsActive       bool    `json:"is_active"`
 }

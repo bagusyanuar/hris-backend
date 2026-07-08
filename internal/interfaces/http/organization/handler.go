@@ -1,9 +1,9 @@
 package organization
 
 import (
-	"github.com/gofiber/fiber/v3"
 	appOrg "github.com/bagusyanuar/hris-backend/internal/application/organization"
 	"github.com/bagusyanuar/hris-backend/pkg/response"
+	"github.com/gofiber/fiber/v3"
 )
 
 type Handler struct {
@@ -21,7 +21,7 @@ func (h *Handler) CreateDepartment(c fiber.Ctx) error {
 	if err := c.Bind().Body(&req); err != nil {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
 	}
-	
+
 	res, err := h.service.CreateDepartment(ctx, req)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to create department", err.Error())
@@ -55,7 +55,7 @@ func (h *Handler) GetAllDepartments(c fiber.Ctx) error {
 func (h *Handler) UpdateDepartment(c fiber.Ctx) error {
 	ctx := c.Context()
 	id := c.Params("id")
-	
+
 	var req appOrg.UpdateDepartmentRequest
 	if err := c.Bind().Body(&req); err != nil {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
@@ -121,7 +121,7 @@ func (h *Handler) GetAllJobTitles(c fiber.Ctx) error {
 func (h *Handler) UpdateJobTitle(c fiber.Ctx) error {
 	ctx := c.Context()
 	id := c.Params("id")
-	
+
 	var req appOrg.UpdateJobTitleRequest
 	if err := c.Bind().Body(&req); err != nil {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
@@ -187,7 +187,7 @@ func (h *Handler) GetAllJobPositions(c fiber.Ctx) error {
 func (h *Handler) UpdateJobPosition(c fiber.Ctx) error {
 	ctx := c.Context()
 	id := c.Params("id")
-	
+
 	var req appOrg.UpdateJobPositionRequest
 	if err := c.Bind().Body(&req); err != nil {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
