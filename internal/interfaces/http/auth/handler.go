@@ -42,7 +42,7 @@ func (h *Handler) Login(c fiber.Ctx) error {
 		Name:     "refresh_token",
 		Value:    tokenPair.RefreshToken,
 		Path:     "/",
-		Domain:   "", // Adjust as needed
+		Domain:   "",               // Adjust as needed
 		MaxAge:   7 * 24 * 60 * 60, // 7 days in seconds
 		Expires:  time.Now().Add(7 * 24 * time.Hour),
 		Secure:   true, // true for HTTPS

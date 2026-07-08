@@ -28,7 +28,7 @@ func NewJWTService(secretKey string, accessExpiryHours int, refreshExpiryHours i
 	if refreshExpiryHours <= 0 {
 		refreshExpiryHours = 168
 	}
-	
+
 	return &jwtService{
 		secretKey:     []byte(secretKey),
 		accessExpiry:  time.Duration(accessExpiryHours) * time.Hour,
