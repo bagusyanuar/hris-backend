@@ -9,8 +9,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/bagusyanuar/hris-backend/internal/application/auth"
 	"github.com/bagusyanuar/hris-backend/internal/infrastructure/config"
 	"github.com/bagusyanuar/hris-backend/internal/infrastructure/database"
+	"github.com/bagusyanuar/hris-backend/internal/infrastructure/repository"
+	"github.com/bagusyanuar/hris-backend/internal/infrastructure/security"
+	httpAuth "github.com/bagusyanuar/hris-backend/internal/interfaces/http/auth"
+	"github.com/bagusyanuar/hris-backend/internal/interfaces/http/middleware"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -45,6 +50,30 @@ func main() {
 			"message":     fmt.Sprintf("%s is running", cfg.AppName),
 			"version":     cfg.AppVersion,
 			"environment": cfg.AppEnv,
+		})
+	})
+
+	// Setup Dependencies
+	userRepo := repository.NewUserRepository(db)
+	tokenGenerator := security.NewJWTService(cfg.JwtSecret, cfg.JwtExpiryHour, cfg.JwtRefreshExpiryHour)
+	authService := auth.NewService(userRepo, tokenGenerator)
+	authHandler := httpAuth.NewHandler(authService)
+
+	// Setup Routes
+	api := app.Group("/api/v1")
+	
+	// Auth Routes
+	authRoutes := api.Group("/auth")
+	authRoutes.Post("/login", authHandler.Login)
+	authRoutes.Post("/refresh", authHandler.Refresh)
+
+	// Protected Example Route
+	api.Get("/users/me", middleware.AuthProtected(tokenGenerator), func(c fiber.Ctx) error {
+		userID := c.Locals("userID")
+		role := c.Locals("role")
+		return c.JSON(fiber.Map{
+			"user_id": userID,
+			"role":    role,
 		})
 	})
 

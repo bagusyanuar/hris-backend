@@ -23,7 +23,7 @@ Untuk setiap modul domain baru `<domain_name>`, buat file-file berikut:
    - `<domain_name>_postgres.go` (atau DB target lainnya): Implementasikan interface repository dari domain.
 
 4. **Interfaces Layer** (`internal/interfaces/http/`):
-   - `<domain_name>_handler.go`: HTTP handler (Gin/Fiber) untuk memetakan request, validasi input dasar, memanggil application service, dan mengembalikan response JSON.
+   - `<domain_name>/handler.go`: HTTP handler (Gin/Fiber) untuk memetakan request, validasi input dasar, memanggil application service, dan mengembalikan response JSON.
 
 ## Contoh Template Entity & Repository
 
@@ -137,25 +137,25 @@ func (r *<EntityName>Repository) FindByID(ctx context.Context, id string) (*<dom
 }
 ```
 
-### `internal/interfaces/http/<domain_name>_handler.go`
+### `internal/interfaces/http/<domain_name>/handler.go`
 ```go
-package http
+package <domain_name>
 
 import (
 	"github.com/gofiber/fiber/v3"
-	"github.com/bagusyanuar/hris-backend/internal/application/<domain_name>"
+	app<EntityName> "github.com/bagusyanuar/hris-backend/internal/application/<domain_name>"
 )
 
-type <EntityName>Handler struct {
-	service *<domain_name>.Service
+type Handler struct {
+	service *app<EntityName>.Service
 }
 
-func New<EntityName>Handler(service *<domain_name>.Service) *<EntityName>Handler {
-	return &<EntityName>Handler{service: service}
+func NewHandler(service *app<EntityName>.Service) *Handler {
+	return &Handler{service: service}
 }
 
-func (h *<EntityName>Handler) Get(c fiber.Ctx) error {
-	ctx := c.UserContext()
+func (h *Handler) Get(c fiber.Ctx) error {
+	ctx := c.Context()
 	id := c.Params("id")
 	
 	result, err := h.service.GetByID(ctx, id)

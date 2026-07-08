@@ -12,8 +12,8 @@ import (
 // InitDB menginisialisasi koneksi PostgreSQL menggunakan GORM
 func InitDB(cfg *config.Config) (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
-		cfg.DbHost, cfg.DbUser, cfg.DbPassword, cfg.DbName, cfg.DbPort, cfg.DbSslMode, cfg.DbTz,
+		"postgres://%s:%s@%s:%s/%s?sslmode=%s&TimeZone=%s",
+		cfg.DbUser, cfg.DbPassword, cfg.DbHost, cfg.DbPort, cfg.DbName, cfg.DbSslMode, cfg.DbTz,
 	)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})

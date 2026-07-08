@@ -1,0 +1,86 @@
+openapi: 3.0.3
+info:
+  title: HRIS Auth API
+  version: 1.0.0
+  description: Authentication domain endpoints for HRIS Backend.
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+paths:
+  /auth/login:
+    post:
+      summary: Login User
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: "Email pengguna yang valid."
+                  example: admin@hris.local
+                password:
+                  type: string
+                  description: "Katasandi pengguna."
+                  example: "@Admin1234"
+      responses:
+        '200':
+          description: Login successful. Access token returned in JSON, Refresh token in HttpOnly Cookie.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: refresh_token=abcde12345; Path=/; Max-Age=604800; HttpOnly; Secure; SameSite=Strict
+          content:
+            application/json:
+              example:
+                access_token: "eyJhbGciOiJIUzI1NiIsInR5c..."
+                expires_in: 3600
+                token_type: "Bearer"
+        '400':
+          description: Bad Request - Missing required fields or invalid format
+          content:
+            application/json:
+              example:
+                error: "invalid request body"
+        '401':
+          description: Unauthorized - Email or password does not match
+          content:
+            application/json:
+              example:
+                error: "invalid email or password"
+
+  /auth/refresh:
+    post:
+      summary: Refresh Token
+      tags:
+        - Authentication
+      description: Generates a new access token using the HttpOnly refresh token cookie. No body required.
+      responses:
+        '200':
+          description: Token refreshed successfully. Sets a new HttpOnly Cookie for the next rotation.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: refresh_token=fghij67890; Path=/; Max-Age=604800; HttpOnly; Secure; SameSite=Strict
+          content:
+            application/json:
+              example:
+                access_token: "eyJhbGciOiJIUzI1NiIsInR5c..."
+                expires_in: 3600
+                token_type: "Bearer"
+        '401':
+          description: Unauthorized - Refresh token missing from cookies or expired
+          content:
+            application/json:
+              example:
+                error: "invalid or expired token"

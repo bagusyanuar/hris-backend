@@ -1,0 +1,39 @@
+meta {
+  name: Get Me
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/users/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  ## Endpoint Definition
+  Endpoint untuk mengambil data *current user* (profil yang sedang login). Membutuhkan JWT Bearer token yang valid.
+
+  ## Expected Responses
+  
+  **200 OK**
+  Token dikenali dan data user dikembalikan.
+  ```json
+  {
+    "user_id": "c8e82a31-b847-490b-85eb-e18e8f81e3a4",
+    "role": "employee"
+  }
+  ```
+
+  **401 Unauthorized**
+  Token tidak disertakan, format salah, atau sudah expired.
+  ```json
+  {
+    "error": "invalid or expired token"
+  }
+  ```
+}

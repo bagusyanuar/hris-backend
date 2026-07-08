@@ -1,0 +1,36 @@
+meta {
+  name: Refresh Token
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/refresh
+  body: none
+  auth: none
+}
+
+docs {
+  ## Endpoint Definition
+  Endpoint ini menggunakan `refresh_token` yang disisipkan di dalam HttpOnly Cookie secara otomatis oleh browser/klien saat me-request `POST /auth/refresh`. Oleh karena itu, endpoint ini tidak memerlukan *request body*.
+
+  ## Expected Responses
+  
+  **200 OK**
+  Token berhasil di-refresh. Access token baru dikirim, dan cookie `refresh_token` yang baru juga diset.
+  ```json
+  {
+    "access_token": "eyJhbG...",
+    "expires_in": 3600,
+    "token_type": "Bearer"
+  }
+  ```
+
+  **401 Unauthorized**
+  `refresh_token` tidak ditemukan di cookie, atau sudah expired, atau sudah tidak valid.
+  ```json
+  {
+    "error": "invalid or expired token"
+  }
+  ```
+}

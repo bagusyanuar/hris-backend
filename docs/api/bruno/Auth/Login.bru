@@ -1,0 +1,58 @@
+meta {
+  name: Login
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "admin@hris.local",
+    "password": "@Admin1234"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setEnvVar("accessToken", res.body.access_token);
+  }
+}
+
+docs {
+  ## Request Body
+  - `email` (string, required): Format email yang valid.
+  - `password` (string, required): Katasandi user.
+
+  ## Expected Responses
+  
+  **200 OK**
+  Berhasil login. Akan mengatur `refresh_token` di dalam HttpOnly Cookie.
+  ```json
+  {
+    "access_token": "eyJhbG...",
+    "expires_in": 3600,
+    "token_type": "Bearer"
+  }
+  ```
+
+  **400 Bad Request**
+  Format input salah atau ada payload wajib yang tidak dikirim.
+  ```json
+  {
+    "error": "invalid request body"
+  }
+  ```
+
+  **401 Unauthorized**
+  Email atau katasandi tidak valid.
+  ```json
+  {
+    "error": "invalid email or password"
+  }
+  ```
+}

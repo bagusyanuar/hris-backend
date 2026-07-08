@@ -1,0 +1,37 @@
+openapi: 3.0.3
+info:
+  title: HRIS User API
+  version: 1.0.0
+  description: User domain endpoints for HRIS Backend.
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+paths:
+  /users/me:
+    get:
+      summary: Get Current User Profile
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully retrieved currently logged in user info.
+          content:
+            application/json:
+              example:
+                user_id: "c8e82a31-b847-490b-85eb-e18e8f81e3a4"
+                role: "employee"
+        '401':
+          description: Unauthorized - JWT Access Token is missing, invalid, or expired.
+          content:
+            application/json:
+              example:
+                error: "invalid or expired token"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

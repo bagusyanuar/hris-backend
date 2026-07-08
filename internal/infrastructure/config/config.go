@@ -23,8 +23,9 @@ type Config struct {
 	DbSslMode  string `mapstructure:"DB_SSLMODE"`
 	DbTz       string `mapstructure:"DB_TZ"`
 
-	JwtSecret     string `mapstructure:"JWT_SECRET"`
-	JwtExpiryHour int    `mapstructure:"JWT_EXPIRY_HOUR"`
+	JwtSecret            string `mapstructure:"JWT_SECRET"`
+	JwtExpiryHour        int    `mapstructure:"JWT_EXPIRY_HOUR"`
+	JwtRefreshExpiryHour int    `mapstructure:"JWT_REFRESH_EXPIRY_HOUR"`
 }
 
 func LoadConfig() (*Config, error) {
@@ -54,6 +55,7 @@ func LoadConfig() (*Config, error) {
 		DbTz                  string `mapstructure:"DB_TZ"`
 		JwtSecret             string `mapstructure:"JWT_SECRET"`
 		JwtExpiryHour         int    `mapstructure:"JWT_EXPIRY_HOUR"`
+		JwtRefreshExpiryHour  int    `mapstructure:"JWT_REFRESH_EXPIRY_HOUR"`
 	}
 
 	if err := viper.Unmarshal(&raw); err != nil {
@@ -84,5 +86,6 @@ func LoadConfig() (*Config, error) {
 		DbTz:                  raw.DbTz,
 		JwtSecret:             raw.JwtSecret,
 		JwtExpiryHour:         raw.JwtExpiryHour,
+		JwtRefreshExpiryHour:  raw.JwtRefreshExpiryHour,
 	}, nil
 }

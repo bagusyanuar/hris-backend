@@ -56,4 +56,9 @@ migrate-drop: ## Drop all tables in the database (CAUTION)
 	@echo "Dropping all tables..."
 	@$(MIGRATE) -path $(MIGRATION_PATH) -database "$(DB_URL)" drop -f
 
-migrate-fresh: migrate-drop migrate-up ## Drop all tables and run all migrations
+migrate-fresh: migrate-drop migrate-up db-seed ## Drop all tables, run migrations and seed
+
+db-seed: ## Seed the database with initial data
+	@echo "Seeding database..."
+	@go run cmd/seed/main.go
+
