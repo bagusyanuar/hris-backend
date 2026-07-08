@@ -90,7 +90,7 @@ graph TD
 
 ### D. Interfaces/HTTP Layer
 * Parsing request (JSON/Form binding, URL query parameter).
-* Validasi format input dasar (misal format email valid secara sintaksis, field mandatory terisi).
+* **Validasi input**: WAJIB menggunakan `go-playground/validator/v10` melalui package wrapper `pkg/validator`. Jika validasi gagal, kembalikan HTTP `422 Unprocessable Entity` dengan format dictionary array (seperti standar Laravel).
 * Panggil Application Service.
 * Mengembalikan response HTTP menggunakan package `pkg/response` (`response.Success` atau `response.Error`) untuk menjamin standardisasi JSON (berisi `code`, `status`, `message`, `data`/`errors`). Pastikan field `data` mengembalikan `[]` jika array kosong (hindari `null` slice).
 
