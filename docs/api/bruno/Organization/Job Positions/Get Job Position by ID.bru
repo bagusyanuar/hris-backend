@@ -1,0 +1,25 @@
+meta {
+  name: Get Job Position by ID
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/organization/job-positions/:id
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  Mengambil detail slot posisi pekerjaan berdasarkan ID.
+  Required Properties:
+  - id (path parameter)
+  
+  Expected Responses:
+  - 200 OK: Successfully retrieved job position
+  - 404 Not Found: Job position not found
+}

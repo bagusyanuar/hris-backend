@@ -1,0 +1,141 @@
+openapi: 3.0.0
+info:
+  title: Organization API
+  version: 1.0.0
+  description: API for managing departments, job titles, and job positions.
+paths:
+  /api/v1/organization/departments:
+    get:
+      summary: Get all departments
+      tags: [Departments]
+      responses:
+        '200':
+          description: A list of departments
+    post:
+      summary: Create a department
+      tags: [Departments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, name]
+              properties:
+                code:
+                  type: string
+                  example: "IT"
+                name:
+                  type: string
+                  example: "Information Technology"
+                parent_id:
+                  type: string
+                  example: "uuid"
+      responses:
+        '201':
+          description: Department created
+  /api/v1/organization/departments/{id}:
+    get:
+      summary: Get department by ID
+      tags: [Departments]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Department details
+  /api/v1/organization/job-titles:
+    get:
+      summary: Get all job titles
+      tags: [JobTitles]
+      responses:
+        '200':
+          description: A list of job titles
+    post:
+      summary: Create a job title
+      tags: [JobTitles]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, name, grade_level]
+              properties:
+                code:
+                  type: string
+                  example: "MGR"
+                name:
+                  type: string
+                  example: "Manager"
+                grade_level:
+                  type: integer
+                  example: 5
+      responses:
+        '201':
+          description: Job title created
+  /api/v1/organization/job-titles/{id}:
+    get:
+      summary: Get job title by ID
+      tags: [JobTitles]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job title details
+  /api/v1/organization/job-positions:
+    get:
+      summary: Get all job positions
+      tags: [JobPositions]
+      responses:
+        '200':
+          description: A list of job positions
+    post:
+      summary: Create a job position
+      tags: [JobPositions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [department_id, job_title_id, name]
+              properties:
+                department_id:
+                  type: string
+                  example: "uuid"
+                job_title_id:
+                  type: string
+                  example: "uuid"
+                name:
+                  type: string
+                  example: "IT Manager"
+                reports_to_id:
+                  type: string
+                  example: "uuid"
+                headcount_quota:
+                  type: integer
+                  example: 1
+      responses:
+        '201':
+          description: Job position created
+  /api/v1/organization/job-positions/{id}:
+    get:
+      summary: Get job position by ID
+      tags: [JobPositions]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job position details

@@ -1,0 +1,27 @@
+meta {
+  name: Update Job Title
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/organization/job-titles/:id
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "code": "MGR-01",
+    "name": "Senior Manager",
+    "grade_level": 6
+  }
+}
+
+docs {
+  Mengupdate data jabatan berdasarkan ID.
+}

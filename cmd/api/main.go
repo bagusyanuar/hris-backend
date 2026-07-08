@@ -16,6 +16,9 @@ import (
 	"github.com/bagusyanuar/hris-backend/internal/infrastructure/security"
 	httpAuth "github.com/bagusyanuar/hris-backend/internal/interfaces/http/auth"
 	"github.com/bagusyanuar/hris-backend/internal/interfaces/http/middleware"
+	
+	applicationOrg "github.com/bagusyanuar/hris-backend/internal/application/organization"
+	httpOrg "github.com/bagusyanuar/hris-backend/internal/interfaces/http/organization"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -59,6 +62,11 @@ func main() {
 	authService := auth.NewService(userRepo, tokenGenerator)
 	authHandler := httpAuth.NewHandler(authService)
 
+	// Organization Dependencies
+	orgRepo := repository.NewOrganizationRepository(db)
+	orgService := applicationOrg.NewService(orgRepo)
+	orgHandler := httpOrg.NewHandler(orgService)
+
 	// Setup Routes
 	api := app.Group("/api/v1")
 	
@@ -66,6 +74,9 @@ func main() {
 	authRoutes := api.Group("/auth")
 	authRoutes.Post("/login", authHandler.Login)
 	authRoutes.Post("/refresh", authHandler.Refresh)
+
+	// Organization Routes
+	httpOrg.RegisterRoutes(api, orgHandler)
 
 	// Protected Example Route
 	api.Get("/users/me", middleware.AuthProtected(tokenGenerator), func(c fiber.Ctx) error {

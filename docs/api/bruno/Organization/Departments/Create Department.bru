@@ -1,0 +1,33 @@
+meta {
+  name: Create Department
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/organization/departments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "code": "IT",
+    "name": "Information Technology"
+  }
+}
+
+docs {
+  Membuat departemen baru.
+  Required Properties:
+  - code
+  - name
+  
+  Expected Responses:
+  - 201 Created: Department created successfully
+  - 400 Bad Request: Invalid input
+}

@@ -113,3 +113,19 @@ graph TD
 Setiap endpoint API yang dibuat harus didokumentasikan di dua tempat dengan aturan "Split by Domain" (per file untuk setiap domain, bukan monolithic):
 1. **Swagger OpenAPI (YAML)** di `docs/api/swagger/<domain>.yaml`. Wajib mendeskripsikan `requestBody`, `responses` lengkap (termasuk 200, 400, 401, dsb.), `required` fields, dan `example`.
 2. **Bruno Collection** di `docs/api/bruno/<Domain>/`. Wajib menyertakan blok `docs { ... }` yang menjelaskan endpoint, `required` properties, dan *Expected Responses* (sama seperti Swagger).
+
+---
+
+## 6. Dokumen Teknis (Technical Documents)
+
+Setiap pembuatan dokumen teknis, rancangan arsitektur, atau *implementation plan* yang diminta oleh user:
+* **WAJIB** disimpan sebagai file Markdown (`.md`) di dalam folder `docs/technical/` di dalam project (contoh: `docs/technical/organization_module.md`).
+* Hal ini bertujuan agar dokumen arsitektur menjadi bagian dari dokumentasi repositori yang permanen.
+
+---
+
+## 7. UUID Generation (Primary Key)
+
+Semua entitas yang menggunakan UUID sebagai Primary Key wajib mengimplementasikan pola *auto-generate* UUID pada dua *layer* berikut:
+1. **Domain Layer (`entity.go`)**: Di dalam *constructor function* (`NewEntityName(...)`), pastikan ada pengecekan jika ID kosong, maka diisi dengan UUID baru (`if id == "" { id = uuid.New().String() }`).
+2. **Infrastructure Layer (`models.go`)**: Tambahkan *hook* GORM `BeforeCreate` pada model yang bersangkutan untuk mengisi `m.ID` dengan UUID baru jika masih kosong.

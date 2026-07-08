@@ -1,0 +1,39 @@
+Project HRIS {
+  database_type: 'PostgreSQL'
+  Note: 'HRIS Organization Module (Enterprise-Grade Structure)'
+}
+
+Table departments {
+  id uuid [primary key]
+  code varchar [unique, note: 'e.g., IT, HR, FIN']
+  name varchar
+  parent_id uuid [ref: > departments.id, note: 'For sub-departments']
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
+}
+
+Table job_titles {
+  id uuid [primary key]
+  code varchar [unique, note: 'e.g., MGR, STF']
+  name varchar [note: 'e.g., Manager, Staff']
+  grade_level int [note: 'Hierarchy level, e.g., 5 for manager']
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
+}
+
+Table job_positions {
+  id uuid [primary key]
+  department_id uuid [ref: > departments.id]
+  job_title_id uuid [ref: > job_titles.id]
+  name varchar [note: 'Specific position name, e.g., IT Manager']
+  reports_to_id uuid [ref: > job_positions.id, note: 'Direct manager position']
+  headcount_quota int [default: 1]
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
+}
