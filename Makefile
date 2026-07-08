@@ -13,7 +13,7 @@ DB_URL=postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?ssl
 MIGRATION_PATH=./migrations
 MIGRATE=migrate
 
-.PHONY: help run dev build migrate-create migrate-up migrate-down migrate-force migrate-status migrate-drop migrate-fresh
+.PHONY: help run dev build lint migrate-create migrate-up migrate-down migrate-force migrate-status migrate-drop migrate-fresh
 
 help: ## Show this help menu
 	@echo "Usage: make [target]"
@@ -62,3 +62,6 @@ db-seed: ## Seed the database with initial data
 	@echo "Seeding database..."
 	@go run cmd/seed/main.go
 
+lint: ## Run golangci-lint
+	@echo "Running linter..."
+	@golangci-lint run
