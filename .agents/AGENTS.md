@@ -103,7 +103,7 @@ graph TD
    - Tangani error sedini mungkin.
    - Jangan abaikan error (`_ = someFunc()`).
    - Gunakan custom domain error (misal `ErrEmployeeNotFound = errors.New("employee not found")`) di layer domain agar interface layer bisa memetakan status HTTP dengan tepat (misal 404 Not Found).
-3. **Dependency Injection**: Gunakan konstruktor (e.g., `NewService(repo domain.Repository)`) untuk passing dependencies. Gunakan library Dependency Injection (seperti `google/wire`) jika project sudah semakin besar.
+3. **Dependency Injection (Manual Bootstrap)**: Gunakan konstruktor (e.g., `NewService(repo domain.Repository)`) untuk passing dependencies. Pisahkan proses inisialisasi per modul ke dalam package tersendiri (buat file `internal/infrastructure/bootstrap/<domain_name>.go` untuk tiap modul) agar file `cmd/api/server.go` tidak membengkak seiring bertambahnya modul. Gunakan library DI seperti `google/wire` jika ke depannya proyek menjadi sangat masif.
 4. **Configuration**: Load konfigurasi dari environment variables atau config file sekali saja di `cmd/api/main.go` menggunakan library seperti `viper` atau `envconfig`, lalu teruskan struct config ke service yang membutuhkan.
 
 ---

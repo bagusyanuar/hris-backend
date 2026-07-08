@@ -28,6 +28,9 @@ Untuk setiap modul domain baru `<domain_name>`, pastikan membuat operasi Full CR
    - `<domain_name>/handler.go`: HTTP handler (Gin/Fiber) Full CRUD.
    - `<domain_name>/router.go`: Register routes untuk Full CRUD.
 
+5. **Dependency Injection / Bootstrap** (`internal/infrastructure/bootstrap/`):
+   - `<domain_name>.go`: Buat fungsi `Init<DomainName>Module(db *gorm.DB, api fiber.Router)` untuk menginisialisasi repository, application service, http handler, serta meregistrasikan rute modul tersebut (`RegisterRoutes`). Ingatkan user agar fungsi ini dipanggil di `cmd/api/server.go`.
+
 ## Contoh Template Entity & Repository
 
 ### `domain/<domain_name>/entity.go`
