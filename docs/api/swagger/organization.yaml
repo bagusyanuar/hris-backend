@@ -34,6 +34,17 @@ paths:
       responses:
         '201':
           description: Department created
+        '422':
+          description: Unprocessable Entity - Validation failed
+          content:
+            application/json:
+              example:
+                code: 422
+                status: "error"
+                message: "Validation failed"
+                errors:
+                  code: ["Kolom code wajib diisi."]
+                  name: ["Kolom name wajib diisi."]
   /api/v1/organization/departments/{id}:
     get:
       summary: Get department by ID
@@ -77,6 +88,18 @@ paths:
       responses:
         '201':
           description: Job title created
+        '422':
+          description: Unprocessable Entity - Validation failed
+          content:
+            application/json:
+              example:
+                code: 422
+                status: "error"
+                message: "Validation failed"
+                errors:
+                  code: ["Kolom code wajib diisi."]
+                  name: ["Kolom name wajib diisi."]
+                  grade_level: ["Kolom grade_level wajib diisi."]
   /api/v1/organization/job-titles/{id}:
     get:
       summary: Get job title by ID
@@ -126,6 +149,18 @@ paths:
       responses:
         '201':
           description: Job position created
+        '422':
+          description: Unprocessable Entity - Validation failed
+          content:
+            application/json:
+              example:
+                code: 422
+                status: "error"
+                message: "Validation failed"
+                errors:
+                  department_id: ["Kolom department_id wajib diisi."]
+                  job_title_id: ["Kolom job_title_id wajib diisi."]
+                  name: ["Kolom name wajib diisi."]
   /api/v1/organization/job-positions/{id}:
     get:
       summary: Get job position by ID

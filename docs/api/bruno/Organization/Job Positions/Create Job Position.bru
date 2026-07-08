@@ -33,4 +33,19 @@ docs {
   Expected Responses:
   - 201 Created: Job position created successfully
   - 400 Bad Request: Invalid input
+
+  **422 Unprocessable Entity**
+  Gagal validasi input.
+  ```json
+  {
+    "code": 422,
+    "status": "error",
+    "message": "Validation failed",
+    "errors": {
+      "field_name": [
+        "Kolom field_name wajib diisi."
+      ]
+    }
+  }
+  ```
 }

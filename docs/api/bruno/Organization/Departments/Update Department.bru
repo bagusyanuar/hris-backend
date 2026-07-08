@@ -23,4 +23,19 @@ body:json {
 
 docs {
   Mengupdate data departemen berdasarkan ID.
+
+  **422 Unprocessable Entity**
+  Gagal validasi input.
+  ```json
+  {
+    "code": 422,
+    "status": "error",
+    "message": "Validation failed",
+    "errors": {
+      "field_name": [
+        "Kolom field_name wajib diisi."
+      ]
+    }
+  }
+  ```
 }
