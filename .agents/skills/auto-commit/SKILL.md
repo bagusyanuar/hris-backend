@@ -12,14 +12,17 @@ If the user asks you to commit, **DO NOT blindly run `git commit` or `git add .`
 1. Run `git status` to see the current state.
 2. If files are already staged (`Changes to be committed`), but they belong to multiple different domains/modules, run `git reset` (or `git restore --staged .`) to unstage everything. We must perform Atomic Commits.
 
-## 2. Analyze & Group Files
+## 2. Linting & Validation
+Before grouping and committing, run `make lint` to verify code quality. If the linter reports errors, you MUST fix them before proceeding.
+
+## 3. Analyze & Group Files
 1. Run `git status` and `git diff` to understand what was changed.
 2. Group the modified/untracked files by their bounded context or domain. For example:
    - `internal/domain/auth/...` + `docs/api/swagger/auth.yaml` -> **Auth Module**
    - `internal/domain/organization/...` -> **Organization Module**
    - `pkg/validator/...` + `cmd/api/...` -> **Core/Infra Module**
 
-## 3. Formulate Atomic Commits
+## 4. Formulate Atomic Commits
 For each module group, formulate a commit message adhering to Conventional Commits format:
 `type(scope): subject`
 
@@ -45,7 +48,7 @@ feat(auth): implement request validation
 - Document 422 responses in Swagger and Bruno
 ```
 
-## 4. Execute Commits
+## 5. Execute Commits
 Execute the commits sequentially per group.
 ```bash
 # Group 1: Auth

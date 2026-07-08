@@ -1,0 +1,33 @@
+---
+name: go-best-practices
+description: Core guidelines for writing robust, memory-efficient, and concurrent-safe Golang code. Trigger this when generating, refactoring, or reviewing Go code.
+---
+
+# Go Robustness & Efficiency Guidelines
+
+This skill contains rules that MUST be followed when writing, refactoring, or reviewing Golang code for the HRIS Backend to ensure high performance, safety, and maintainability.
+
+## 1. Memory & Allocation Efficiency
+* **Pre-allocate Slices/Maps:** If the length of an array/slice is known beforehand, ALWAYS use `make` with the appropriate capacity to avoid expensive memory reallocations. (Example: `make([]User, 0, len(inputs))`).
+* **Pass by Value vs Pointer:** Do not use pointers for small structs unless you need to mutate them or avoid copying massive amounts of data. Go's Garbage Collector prefers pass-by-value on the stack over pointers on the heap.
+* **String Concatenation:** Use `strings.Builder` when concatenating multiple strings (especially inside loops) instead of the `+` operator.
+
+## 2. Robustness & Error Handling
+* **Error Wrapping:** Never return raw errors to the upper layer. Always wrap errors with context using `%w`. (Example: `fmt.Errorf("failed to fetch user %s: %w", userID, err)`).
+* **Resource Cleanup:** ALWAYS use `defer` immediately after error-checking to close resources (e.g., `defer resp.Body.Close()`, `defer rows.Close()`). Do not leak memory or connections.
+
+## 3. Concurrency & Timeout
+* **Goroutine Leaks:** Every goroutine (`go func()`) MUST be guaranteed to exit. Never create a goroutine that blocks indefinitely due to an unclosed channel or missing context cancellation.
+* **Context Propagation:** All functions calling the database, external APIs, or long-running processes MUST accept `ctx context.Context` as the first parameter and pass it down. Do not use `context.Background()` inside repository or application layers.
+
+## 4. Database & Query Efficiency
+* **Avoid N+1 Queries:** When fetching relational data (e.g., Employees and their Departments), ALWAYS use Eager Loading / `Preload` (in GORM) or SQL `JOIN`s. Do not execute queries inside a loop.
+* **Select Specific Columns:** Avoid `SELECT *` for large tables. Only select the columns strictly needed by the Domain Entity or DTO.
+
+## 5. Concurrency Safety & Anti-Patterns
+* **No Global State:** Strictly forbid mutable global variables at the package level. This causes fatal Race Conditions in concurrent HTTP applications. Use struct-based Dependency Injection instead.
+* **Concurrent Map Writes:** Go `map` is not thread-safe. If a map is read and written by multiple goroutines concurrently, you MUST use `sync.RWMutex` or `sync.Map`.
+* **JSON Decoder for Large Payloads:** When parsing JSON from an HTTP Request, use `json.NewDecoder(r.Body).Decode(&dto)` instead of reading the entire body into memory for `json.Unmarshal`.
+
+## 6. Magic Numbers & Strings
+* **Use Constants:** Do not hardcode magic strings or numbers with business meaning (e.g., status `"ACTIVE"`, `"RESIGNED"`, error codes). Define them as constants (`const StatusActive = "ACTIVE"`) in the Domain Layer.
