@@ -1,0 +1,40 @@
+meta {
+  name: Delete Employee
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/employees/:id
+  body: none
+  auth: bearer
+}
+
+params:path {
+  id: 550e8400-e29b-41d4-a716-446655440000
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Delete Employee
+  
+  Menghapus data employee secara permanen atau soft-delete (tergantung implementasi Repository).
+  
+  ## Path Parameters
+  - `id` (required): UUID dari Employee
+  
+  ## Expected Responses
+  
+  **200 OK**
+  ```json
+  {
+    "code": 200,
+    "status": "success",
+    "message": "Employee deleted successfully",
+    "data": null
+  }
+  ```
+}

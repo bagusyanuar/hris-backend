@@ -95,3 +95,33 @@ func (s *Service) Create(ctx context.Context, req CreateEmployeeRequest) (*Emplo
 func (s *Service) GetByID(ctx context.Context, id string) (*employee.Employee, error) {
 	return s.repo.FindByID(ctx, id)
 }
+
+func (s *Service) FindAll(ctx context.Context) ([]*employee.Employee, error) {
+	return s.repo.FindAll(ctx)
+}
+
+func (s *Service) Update(ctx context.Context, id string, req UpdateEmployeeRequest) error {
+	emp, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if req.EmployeeCode != nil {
+		emp.EmployeeCode = *req.EmployeeCode
+	}
+	if req.JobPositionID != nil {
+		emp.JobPositionID = *req.JobPositionID
+	}
+	if req.EmploymentStatus != nil {
+		emp.EmploymentStatus = *req.EmploymentStatus
+	}
+	if req.Status != nil {
+		emp.Status = *req.Status
+	}
+
+	return s.repo.Update(ctx, emp)
+}
+
+func (s *Service) Delete(ctx context.Context, id string) error {
+	return s.repo.Delete(ctx, id)
+}

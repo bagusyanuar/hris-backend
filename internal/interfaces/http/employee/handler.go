@@ -2,6 +2,7 @@ package employee
 
 import (
 	"github.com/bagusyanuar/hris-backend/internal/application/employee"
+	domainEmployee "github.com/bagusyanuar/hris-backend/internal/domain/employee"
 	"github.com/bagusyanuar/hris-backend/pkg/response"
 	"github.com/bagusyanuar/hris-backend/pkg/validator"
 	"github.com/gofiber/fiber/v3"
@@ -50,4 +51,47 @@ func (h *Handler) Get(c fiber.Ctx) error {
 	}
 
 	return response.Success(c, fiber.StatusOK, "Successfully retrieved data", result)
+}
+
+func (h *Handler) FindAll(c fiber.Ctx) error {
+	result, err := h.service.FindAll(c.Context())
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to retrieve employees", err.Error())
+	}
+	if result == nil {
+		result = make([]*domainEmployee.Employee, 0)
+	}
+	return response.Success(c, fiber.StatusOK, "Successfully retrieved data", result)
+}
+
+func (h *Handler) Update(c fiber.Ctx) error {
+	id := c.Params("id")
+	var req employee.UpdateEmployeeRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid JSON format", err.Error())
+	}
+
+	if errs := validator.ValidateStruct(req); errs != nil {
+		return response.Error(c, fiber.StatusUnprocessableEntity, "Validation failed", errs)
+	}
+
+	err := h.service.Update(c.Context(), id, req)
+	if err != nil {
+		if err.Error() == "employee not found" {
+			return response.Error(c, fiber.StatusNotFound, "Employee not found", nil)
+		}
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to update employee", err.Error())
+	}
+
+	return response.Success(c, fiber.StatusOK, "Employee updated successfully", nil)
+}
+
+func (h *Handler) Delete(c fiber.Ctx) error {
+	id := c.Params("id")
+	err := h.service.Delete(c.Context(), id)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to delete employee", err.Error())
+	}
+
+	return response.Success(c, fiber.StatusOK, "Employee deleted successfully", nil)
 }

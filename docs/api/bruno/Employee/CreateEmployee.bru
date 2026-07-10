@@ -1,0 +1,84 @@
+meta {
+  name: Create Employee
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/employees
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "employee_code": "EMP-001",
+    "job_position_id": "123e4567-e89b-12d3-a456-426614174000",
+    "join_date": "2024-01-15",
+    "employment_status": "PERMANENT",
+    "personal_data": {
+      "full_name": "Bagus Yanuar",
+      "ktp_number": "3171234567890123",
+      "gender": "MALE",
+      "marital_status": "SINGLE",
+      "ptkp_status": "TK/0",
+      "religion": "ISLAM"
+    },
+    "banks": [
+      {
+        "bank_name": "BCA",
+        "account_number": "1234567890",
+        "account_holder_name": "Bagus Yanuar",
+        "is_primary": true
+      }
+    ]
+  }
+}
+
+docs {
+  # Create Employee
+  
+  Endpoint untuk membuat data employee baru beserta personal data dan akun bank.
+  
+  ## Request Body
+  - `employee_code` (required): Kode pegawai unik.
+  - `job_position_id` (required): UUID dari Job Position.
+  - `join_date` (required): Tanggal bergabung (YYYY-MM-DD).
+  - `employment_status` (required): PERMANENT, CONTRACT, PROBATION, INTERNSHIP.
+  - `personal_data` (required): Objek data personal (KTP, Nama, dll).
+  - `banks` (required): Array dari objek bank (minimal 1).
+  
+  ## Expected Responses
+  
+  **201 Created**
+  ```json
+  {
+    "code": 201,
+    "status": "success",
+    "message": "Employee created successfully",
+    "data": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "employee_code": "EMP-001",
+      "status": "ACTIVE",
+      "employment_status": "PERMANENT",
+      "created_at": "2024-01-15T10:00:00Z"
+    }
+  }
+  ```
+  
+  **422 Validation Failed**
+  ```json
+  {
+    "code": 422,
+    "status": "error",
+    "message": "Validation failed",
+    "errors": {
+      "ktp_number": "ktp_number must be exactly 16 characters long"
+    }
+  }
+  ```
+}

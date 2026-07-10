@@ -1,0 +1,269 @@
+openapi: 3.0.3
+info:
+  title: Employee API
+  version: 1.0.0
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+paths:
+  /api/v1/employees:
+    post:
+      summary: Create a new employee
+      tags:
+        - Employee
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - employee_code
+                - job_position_id
+                - join_date
+                - employment_status
+                - personal_data
+                - banks
+              properties:
+                employee_code:
+                  type: string
+                  example: "EMP-001"
+                job_position_id:
+                  type: string
+                  format: uuid
+                  example: "123e4567-e89b-12d3-a456-426614174000"
+                join_date:
+                  type: string
+                  example: "2024-01-15"
+                employment_status:
+                  type: string
+                  enum: [PERMANENT, CONTRACT, PROBATION, INTERNSHIP]
+                  example: "PERMANENT"
+                personal_data:
+                  type: object
+                  required:
+                    - full_name
+                    - ktp_number
+                  properties:
+                    full_name:
+                      type: string
+                      example: "Bagus Yanuar"
+                    ktp_number:
+                      type: string
+                      example: "3171234567890123"
+                    gender:
+                      type: string
+                      enum: [MALE, FEMALE]
+                      example: "MALE"
+                    marital_status:
+                      type: string
+                      example: "SINGLE"
+                    ptkp_status:
+                      type: string
+                      example: "TK/0"
+                    religion:
+                      type: string
+                      example: "ISLAM"
+                banks:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required:
+                      - bank_name
+                      - account_number
+                      - account_holder_name
+                    properties:
+                      bank_name:
+                        type: string
+                        example: "BCA"
+                      account_number:
+                        type: string
+                        example: "1234567890"
+                      account_holder_name:
+                        type: string
+                        example: "Bagus Yanuar"
+                      is_primary:
+                        type: boolean
+                        example: true
+      responses:
+        '201':
+          description: Employee created successfully
+          content:
+            application/json:
+              example:
+                code: 201
+                status: success
+                message: Employee created successfully
+                data:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  employee_code: "EMP-001"
+                  status: "ACTIVE"
+                  employment_status: "PERMANENT"
+                  created_at: "2024-01-15T10:00:00Z"
+        '400':
+          description: Bad Request (Invalid JSON or Input)
+          content:
+            application/json:
+              example:
+                code: 400
+                status: error
+                message: Invalid JSON format
+                errors: "missing field banks"
+        '422':
+          description: Validation Failed
+          content:
+            application/json:
+              example:
+                code: 422
+                status: error
+                message: Validation failed
+                errors:
+                  ktp_number: "ktp_number must be 16 characters"
+    get:
+      summary: List all employees
+      tags:
+        - Employee
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully retrieved data
+          content:
+            application/json:
+              example:
+                code: 200
+                status: success
+                message: Successfully retrieved data
+                data:
+                  - id: "550e8400-e29b-41d4-a716-446655440000"
+                    employee_code: "EMP-001"
+                    status: "ACTIVE"
+                    employment_status: "PERMANENT"
+                    created_at: "2024-01-15T10:00:00Z"
+  /api/v1/employees/{id}:
+    get:
+      summary: Get employee by ID
+      tags:
+        - Employee
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successfully retrieved data
+          content:
+            application/json:
+              example:
+                code: 200
+                status: success
+                message: Successfully retrieved data
+                data:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  employee_code: "EMP-001"
+                  status: "ACTIVE"
+                  employment_status: "PERMANENT"
+                  created_at: "2024-01-15T10:00:00Z"
+        '404':
+          description: Employee not found
+          content:
+            application/json:
+              example:
+                code: 404
+                status: error
+                message: Employee not found
+                errors: null
+    put:
+      summary: Update employee
+      tags:
+        - Employee
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                employee_code:
+                  type: string
+                  example: "EMP-002"
+                job_position_id:
+                  type: string
+                  format: uuid
+                employment_status:
+                  type: string
+                  enum: [PERMANENT, CONTRACT, PROBATION, INTERNSHIP]
+                status:
+                  type: string
+                  enum: [ACTIVE, INACTIVE, SUSPENDED]
+      responses:
+        '200':
+          description: Employee updated successfully
+          content:
+            application/json:
+              example:
+                code: 200
+                status: success
+                message: Employee updated successfully
+                data: null
+        '404':
+          description: Employee not found
+          content:
+            application/json:
+              example:
+                code: 404
+                status: error
+                message: Employee not found
+                errors: null
+    delete:
+      summary: Delete employee
+      tags:
+        - Employee
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Employee deleted successfully
+          content:
+            application/json:
+              example:
+                code: 200
+                status: success
+                message: Employee deleted successfully
+                data: null
+        '404':
+          description: Employee not found
+          content:
+            application/json:
+              example:
+                code: 404
+                status: error
+                message: Employee not found
+                errors: null

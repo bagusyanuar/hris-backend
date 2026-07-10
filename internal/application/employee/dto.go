@@ -35,3 +35,10 @@ type EmployeeResponse struct {
 	EmploymentStatus string    `json:"employment_status"`
 	CreatedAt        time.Time `json:"created_at"`
 }
+
+type UpdateEmployeeRequest struct {
+	EmployeeCode     *string `json:"employee_code" validate:"omitempty"`
+	JobPositionID    *string `json:"job_position_id" validate:"omitempty,uuid"`
+	EmploymentStatus *string `json:"employment_status" validate:"omitempty,oneof=PERMANENT CONTRACT PROBATION INTERNSHIP"`
+	Status           *string `json:"status" validate:"omitempty,oneof=ACTIVE INACTIVE SUSPENDED"`
+}

@@ -1,0 +1,64 @@
+meta {
+  name: Update Employee
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/employees/:id
+  body: json
+  auth: bearer
+}
+
+params:path {
+  id: 550e8400-e29b-41d4-a716-446655440000
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "employee_code": "EMP-002",
+    "employment_status": "CONTRACT",
+    "status": "ACTIVE"
+  }
+}
+
+docs {
+  # Update Employee
+  
+  Memperbarui data parsial employee.
+  
+  ## Path Parameters
+  - `id` (required): UUID dari Employee
+  
+  ## Request Body
+  - `employee_code` (optional)
+  - `job_position_id` (optional)
+  - `employment_status` (optional)
+  - `status` (optional): ACTIVE, INACTIVE, SUSPENDED
+  
+  ## Expected Responses
+  
+  **200 OK**
+  ```json
+  {
+    "code": 200,
+    "status": "success",
+    "message": "Employee updated successfully",
+    "data": null
+  }
+  ```
+  
+  **404 Not Found**
+  ```json
+  {
+    "code": 404,
+    "status": "error",
+    "message": "Employee not found",
+    "errors": null
+  }
+  ```
+}
