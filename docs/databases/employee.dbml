@@ -1,0 +1,76 @@
+Project HRIS_Employee {
+  database_type: 'PostgreSQL'
+  Note: 'Database schema for the Employee Core Domain'
+}
+
+Table employees {
+  id uuid [pk]
+  user_id uuid [not null, note: 'Ref to Auth Module']
+  employee_code varchar(50) [unique]
+  job_position_id uuid [not null, note: 'Ref to Organization Module']
+  employment_status varchar(20)
+  join_date date [not null]
+  end_date date
+  resign_date date
+  status varchar(20) [default: 'ACTIVE']
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
+}
+
+Table employee_personal_data {
+  id uuid [pk]
+  employee_id uuid [unique, ref: - employees.id]
+  full_name varchar(150) [not null]
+  ktp_number varchar(16) [unique]
+  gender varchar(10)
+  marital_status varchar(20)
+  ptkp_status varchar(10)
+  religion varchar(30)
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table employee_contacts {
+  id uuid [pk]
+  employee_id uuid [unique, ref: - employees.id]
+  personal_email varchar(100)
+  phone_number varchar(20)
+  identity_address text
+  residential_address text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table employee_banks {
+  id uuid [pk]
+  employee_id uuid [ref: > employees.id]
+  bank_name varchar(50) [not null]
+  account_number varchar(50) [not null]
+  account_holder_name varchar(100) [not null]
+  is_primary boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table employee_educations {
+  id uuid [pk]
+  employee_id uuid [ref: > employees.id]
+  level varchar(20)
+  institution_name varchar(150)
+  major varchar(100)
+  start_year int
+  end_year int
+  score decimal(5,2)
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table employee_documents {
+  id uuid [pk]
+  employee_id uuid [ref: > employees.id]
+  document_type varchar(50)
+  document_url text [not null]
+  created_at timestamp
+  updated_at timestamp
+}
