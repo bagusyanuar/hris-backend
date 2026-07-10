@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/bagusyanuar/hris-backend/internal/infrastructure/bootstrap"
+	"github.com/bagusyanuar/hris-backend/internal/di"
 	"github.com/bagusyanuar/hris-backend/internal/infrastructure/config"
 	"github.com/bagusyanuar/hris-backend/internal/infrastructure/security"
 	"github.com/bagusyanuar/hris-backend/internal/interfaces/http/middleware"
@@ -69,9 +69,14 @@ func (s *Server) setupRoutes() {
 	// Setup API Routes
 	api := s.app.Group("/api/v1")
 
-	// Bootstrap Domain Modules
-	bootstrap.InitAuthModule(s.db, api, tokenGenerator)
-	bootstrap.InitOrganizationModule(s.db, api)
+	// Initialize API Handlers via Google Wire
+	handlers, err := di.InitializeAPI(s.db, tokenGenerator)
+	if err != nil {
+		panic("failed to initialize DI: " + err.Error())
+	}
+
+	// Register all routes
+	handlers.RegisterRoutes(api)
 
 	// Protected Example Route
 	api.Get("/users/me", middleware.AuthProtected(tokenGenerator), func(c fiber.Ctx) error {
