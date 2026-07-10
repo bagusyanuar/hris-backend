@@ -103,8 +103,9 @@ graph TD
    - Tangani error sedini mungkin.
    - Jangan abaikan error (`_ = someFunc()`).
    - Gunakan custom domain error (misal `ErrEmployeeNotFound = errors.New("employee not found")`) di layer domain agar interface layer bisa memetakan status HTTP dengan tepat (misal 404 Not Found).
-3. **Dependency Injection (Manual Bootstrap)**: Gunakan konstruktor (e.g., `NewService(repo domain.Repository)`) untuk passing dependencies. Pisahkan proses inisialisasi per modul ke dalam package tersendiri (buat file `internal/infrastructure/bootstrap/<domain_name>.go` untuk tiap modul) agar file `cmd/api/server.go` tidak membengkak seiring bertambahnya modul. Gunakan library DI seperti `google/wire` jika ke depannya proyek menjadi sangat masif.
-4. **Configuration**: Load konfigurasi dari environment variables atau config file sekali saja di `cmd/api/main.go` menggunakan library seperti `viper` atau `envconfig`, lalu teruskan struct config ke service yang membutuhkan.
+3. **Dependency Injection (Google Wire)**: Proyek ini wajib menggunakan `google/wire` untuk injeksi dependensi secara compile-time. Semua dependensi (Repository, Service, Handler) di-registrasikan ke dalam `wire.ProviderSet` di dalam file `internal/di/wire.go`. File `cmd/api/server.go` akan bersih karena cukup memanggil `di.InitializeAPI(s.db, tokenGenerator)`.
+4. **Cross-Domain Communication (Bounded Contexts)**: Untuk saat ini, komunikasi antar modul/domain dilakukan secara langsung (Synchronous) melalui injeksi *Application Service* modul lain menggunakan `google/wire` (bukan menggunakan Message Broker/Event Bus). Hindari injeksi *Repository* modul lain secara langsung ke dalam *Service*; selalu gunakan *Application Service* modul tersebut sebagai jembatan/API internal.
+5. **Configuration**: Load konfigurasi dari environment variables atau config file sekali saja di `cmd/api/main.go` menggunakan library seperti `viper` atau `envconfig`, lalu teruskan struct config ke service yang membutuhkan.
 
 ---
 
@@ -116,11 +117,38 @@ Setiap endpoint API yang dibuat harus didokumentasikan di dua tempat dengan atur
 
 ---
 
-## 6. Dokumen Teknis (Technical Documents)
+## 8. Git Commit & Versioning (Conventional Commits)
+Semua commit harus menggunakan format **Conventional Commits**:
+- `feat:` (fitur baru)
+- `fix:` (perbaikan bug)
+- `docs:` (dokumentasi, termasuk PRD/RFC)
+- `refactor:` (restrukturisasi kode)
+- `chore:` (maintenance, update dependensi, generate wire)
 
-Setiap pembuatan dokumen teknis, rancangan arsitektur, atau *implementation plan* yang diminta oleh user:
-* **WAJIB** disimpan sebagai file Markdown (`.md`) di dalam folder `docs/technical/` di dalam project (contoh: `docs/technical/organization_module.md`).
-* Hal ini bertujuan agar dokumen arsitektur menjadi bagian dari dokumentasi repositori yang permanen.
+**Aturan Penting:**
+1. **Atomik:** Dilarang menggabung perubahan fitur A dengan bugfix B dalam satu commit. Pecah menjadi beberapa commit jika perlu.
+2. **Workflow:** Gunakan *slash command* `/git-commit` agar AI mengelompokkan file dan menulis pesan commit secara otomatis.
+3. **Changelog:** Jika ada perubahan besar, AI akan memperbarui file `CHANGELOG.md`.
+
+---
+
+## 6. Dokumen Proyek (Requirements & Technical)
+
+Ada dua jenis dokumen yang wajib disimpan ke dalam repositori secara permanen:
+1. **Product Requirements Document (PRD):** 
+   - Jika user meminta rancangan fitur, requirement, atau skema bisnis (bukan teknis database murni), gunakan format PRD.
+   - **WAJIB** disimpan di folder `docs/requirement/` (contoh: `docs/requirement/employee.md`).
+   - Format penulisan wajib mematuhi panduan dari skill `scaffold-prd`.
+2. **Dokumen Teknis & Arsitektur (Enterprise Tech Specs):**
+   - Setiap rancangan arsitektur sistem, struktur database, atau *implementation plan* murni teknis, **WAJIB** disimpan di dalam sub-folder per domain di `docs/technical/<domain_name>/`.
+   - Dokumentasi di dalam folder tersebut **harus dipecah** menjadi beberapa file spesifik:
+     - `tech-spec.md` (Arsitektur inti, API, dan skema DB).
+     - `user-stories.md` (Alur logika dan diagram *sequence*).
+     - `decision-log.md` (ADR - Mencatat *kenapa* keputusan teknis tertentu diambil).
+     - Serta dokumen pendukung opsional seperti `data-dictionary.md`, `infrastructure.md`, dan `test-plan.md`.
+3. **Database Markup (DBML):**
+   - Skema database relasional **WAJIB** ditulis dalam format DBML (`.dbml`) dan disimpan di folder `docs/databases/` (contoh: `docs/databases/employee.dbml`).
+   - Tujuannya agar arsitektur ERD bisa divisualisasikan dengan mudah via dbdiagram.io.
 
 ---
 

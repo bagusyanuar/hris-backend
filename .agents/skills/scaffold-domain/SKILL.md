@@ -28,8 +28,10 @@ Untuk setiap modul domain baru `<domain_name>`, pastikan membuat operasi Full CR
    - `<domain_name>/handler.go`: HTTP handler (Gin/Fiber) Full CRUD.
    - `<domain_name>/router.go`: Register routes untuk Full CRUD.
 
-5. **Dependency Injection / Bootstrap** (`internal/infrastructure/bootstrap/`):
-   - `<domain_name>.go`: Buat fungsi `Init<DomainName>Module(db *gorm.DB, api fiber.Router)` untuk menginisialisasi repository, application service, http handler, serta meregistrasikan rute modul tersebut (`RegisterRoutes`). Ingatkan user agar fungsi ini dipanggil di `cmd/api/server.go`.
+5. **Dependency Injection (Google Wire)** (`internal/di/`):
+   - Tambahkan struct Handler ke dalam `APIHandlers` di `internal/di/api.go` dan panggil fungsi `RegisterRoutes` di dalamnya.
+   - Tambahkan fungsi constructor Repository, Service, dan Handler ke masing-masing `ProviderSet` di dalam `internal/di/wire.go`.
+   - Jalankan perintah `go run github.com/google/wire/cmd/wire@latest ./internal/di` di terminal untuk men-generate `wire_gen.go`.
 
 ## Contoh Template Entity & Repository
 
@@ -131,8 +133,8 @@ func (m *<EntityName>Model) ToDomain() (*<domain_name>.<EntityName>, error) {
 	return entity, nil
 }
 
-// FromDomain mengonversi Domain Entity ke GORM model
-func FromDomain(entity *<domain_name>.<EntityName>) *<EntityName>Model {
+// <EntityName>FromDomain mengonversi Domain Entity ke GORM model
+func <EntityName>FromDomain(entity *<domain_name>.<EntityName>) *<EntityName>Model {
 	return &<EntityName>Model{
 		ID:        entity.ID,
 		Name:      entity.Name,
@@ -164,7 +166,7 @@ func New<EntityName>Repository(db *gorm.DB) <domain_name>.Repository {
 }
 
 func (r *<EntityName>Repository) Save(ctx context.Context, item *<domain_name>.<EntityName>) error {
-	model := models.FromDomain(item)
+	model := models.<EntityName>FromDomain(item)
 	return r.db.WithContext(ctx).Save(model).Error
 }
 
@@ -190,7 +192,7 @@ func (r *<EntityName>Repository) FindAll(ctx context.Context) ([]*<domain_name>.
 }
 
 func (r *<EntityName>Repository) Update(ctx context.Context, item *<domain_name>.<EntityName>) error {
-	model := models.FromDomain(item)
+	model := models.<EntityName>FromDomain(item)
 	return r.db.WithContext(ctx).Save(model).Error
 }
 
@@ -207,6 +209,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	app<EntityName> "github.com/bagusyanuar/hris-backend/internal/application/<domain_name>"
 	"github.com/bagusyanuar/hris-backend/pkg/response"
+	"github.com/bagusyanuar/hris-backend/pkg/validator"
 )
 
 type Handler struct {
@@ -216,6 +219,9 @@ type Handler struct {
 func NewHandler(service *app<EntityName>.Service) *Handler {
 	return &Handler{service: service}
 }
+
+// PERHATIAN: Untuk validasi request, JANGAN inject validator ke struct Handler.
+// Gunakan fungsi global pkg/validator langsung, contoh: `errs := validator.ValidateStruct(req)`
 
 // Contoh GetByID, tambahkan Create, GetAll, Update, dan Delete...
 func (h *Handler) Get(c fiber.Ctx) error {

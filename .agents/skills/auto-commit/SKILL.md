@@ -48,8 +48,10 @@ feat(auth): implement request validation
 - Document 422 responses in Swagger and Bruno
 ```
 
-## 5. Execute Commits
-Execute the commits sequentially per group.
+## 5. Execute Commits & Changelog
+1. **Minta Persetujuan (Ask User):** Sebelum benar-benar menjalankan `git commit`, tampilkan **Rencana Commit** (daftar grup, file, dan pesan commit) kepada user. Tanyakan apakah mereka setuju.
+2. **Update Changelog:** Jika user setuju dan perubahannya signifikan (feat/fix/breaking change), tulis perubahan tersebut ke dalam file `CHANGELOG.md` di *root directory* (di bawah *header* `## [Unreleased]`) jika diminta.
+3. **Eksekusi:** Setelah user bilang "Ya", eksekusi commit secara berurutan.
 ```bash
 # Group 1: Auth
 git add internal/interfaces/http/auth/handler.go docs/api/swagger/auth.yaml docs/api/bruno/Auth/Login.bru
