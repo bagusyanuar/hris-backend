@@ -18,11 +18,14 @@ This workflow automates the translation of approved Technical Specifications and
 ## Step 2: Layer-by-Layer Code Generation
 You MUST generate the code systematically, from the innermost layer (core) to the outermost layer, ensuring dependencies are correct.
 
+> **CRITICAL RULE (LAYER CONSISTENCY)**: Do not output partial implementations to save tokens. You MUST write the FULL logic for ALL operations defined in the Technical Specification. If the spec dictates 3 endpoints, you must implement exactly those 3 endpoints consistently across the Repository, Application Service, HTTP Handlers, and Routers. Do not skip or use placeholders.
+
 1. **Domain Layer:** Generate `entity.go` and `repository.go` (interfaces) inside `internal/domain/<domain>/`.
 2. **Infrastructure Layer:** Generate GORM Models inside `internal/infrastructure/repository/models/` and implement the Postgres Repository in `internal/infrastructure/repository/`.
 3. **Application Layer:** Generate Request/Response DTOs (`dto.go`) and Application Service (`service.go`) inside `internal/application/<domain>/`. Ensure transactions are handled here if required by the Tech Spec.
 4. **Interfaces Layer:** Generate HTTP handlers (`handler.go`) and routing (`router.go`) inside `internal/interfaces/http/<domain>/`.
 5. **Bootstrap/Wiring:** You MUST update `internal/di/api.go` (to register the handler to `APIHandlers` struct) and `internal/di/wire.go` (to add the Repository, Service, and Handler to their respective `ProviderSets`). Then run `go run github.com/google/wire/cmd/wire@latest ./internal/di` to regenerate the DI code.
+6. **API Documentation:** Generate the Swagger YAML and Bruno Collection for the new module as per the `scaffold-api-docs` skill.
 
 ## Step 3: Verification & Walkthrough
 1. After generating all the files, present a summary of the new files to the user.

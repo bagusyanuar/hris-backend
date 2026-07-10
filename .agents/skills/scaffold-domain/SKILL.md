@@ -9,24 +9,26 @@ Gunakan skill ini ketika user meminta untuk membuat modul domain baru (misalnya:
 
 ## Prosedur Pembuatan Modul
 
-Untuk setiap modul domain baru `<domain_name>`, pastikan membuat operasi Full CRUD standar (Create, Read All, Read By ID, Update, Delete) pada file-file berikut:
+Untuk setiap modul domain baru `<domain_name>`, pastikan mengimplementasikan *endpoints* sesuai dengan yang dirancang di `Tech Specs`. 
+
+> **CRITICAL AI RULE (LAYER CONSISTENCY)**: You MUST implement EXACTLY the operations defined in the Technical Specifications across ALL layers consistently. If a module has 3 operations (e.g., Create, FindAll, GetByID), you must write the FULL logic for those 3 operations in the Repository, Application Service, HTTP Handler, and Router. DO NOT use placeholders (e.g., `// ... tambahkan sisanya`) or drop operations to save tokens. Generate everything completely!
 
 1. **Domain Layer** (`internal/domain/<domain_name>/`):
    - `entity.go`: Definisikan entity utama, value objects, constructor `New<EntityName>`, dan validasi bisnis. Biasakan ada `CreatedAt`, `UpdatedAt`, dan `IsActive`.
-   - `repository.go`: Definisikan interface `Repository` yang menggunakan `context.Context` untuk Full CRUD.
+   - `repository.go`: Definisikan interface `Repository` yang menggunakan `context.Context` untuk operasi yang dibutuhkan.
    - `service.go` (Opsional): Buat jika ada logika bisnis murni domain.
 
 2. **Application Layer** (`internal/application/<domain_name>/`):
-   - `service.go`: Definisikan application service untuk mengkoordinasikan transaksi Full CRUD.
+   - `service.go`: Definisikan application service untuk mengkoordinasikan transaksi.
    - `dto.go`: Request & Response DTOs. Untuk `Update...Request`, gunakan pointer (e.g., `*bool`, `*string`) untuk field opsional agar bisa membedakan `null` dengan *zero value*.
 
 3. **Infrastructure Layer** (`internal/infrastructure/repository/`):
-   - `<domain_name>_postgres.go` (atau DB target lainnya): Implementasikan interface repository dari domain (termasuk Update dan Delete).
+   - `<domain_name>_postgres.go` (atau DB target lainnya): Implementasikan interface repository dari domain.
    - `models/<domain_name>_model.go`: Model GORM dengan fungsi konversi `ToDomain()` dan `FromDomain()`.
 
 4. **Interfaces Layer** (`internal/interfaces/http/`):
-   - `<domain_name>/handler.go`: HTTP handler (Gin/Fiber) Full CRUD.
-   - `<domain_name>/router.go`: Register routes untuk Full CRUD.
+   - `<domain_name>/handler.go`: HTTP handler (Gin/Fiber) untuk operasi yang diizinkan.
+   - `<domain_name>/router.go`: Register routes.
 
 5. **Dependency Injection (Google Wire)** (`internal/di/`):
    - Tambahkan struct Handler ke dalam `APIHandlers` di `internal/di/api.go` dan panggil fungsi `RegisterRoutes` di dalamnya.
@@ -223,16 +225,10 @@ func NewHandler(service *app<EntityName>.Service) *Handler {
 // PERHATIAN: Untuk validasi request, JANGAN inject validator ke struct Handler.
 // Gunakan fungsi global pkg/validator langsung, contoh: `errs := validator.ValidateStruct(req)`
 
-// Contoh GetByID, tambahkan Create, GetAll, Update, dan Delete...
-func (h *Handler) Get(c fiber.Ctx) error {
-	ctx := c.Context()
-	id := c.Params("id")
-	
-	result, err := h.service.GetByID(ctx, id)
-	if err != nil {
-		return response.Error(c, fiber.StatusNotFound, "Data not found", err.Error())
-	}
-	
-	return response.Success(c, fiber.StatusOK, "Successfully retrieved data", result)
-}
+// WAJIB KONSISTEN! Implementasikan HANYA DAN SEMUA operasi yang disetujui di Tech Specs.
+// DILARANG MEMOTONG KODE ATAU MENGGUNAKAN PLACEHOLDER.
+// TULIS SEMUA METHOD HANDLER SECARA LENGKAP.
+func (h *Handler) Create(c fiber.Ctx) error { /* full impl */ }
+func (h *Handler) Get(c fiber.Ctx) error { /* full impl */ }
+// ... sertakan method lain (FindAll, Update, Delete) HANYA jika memang diwajibkan oleh spesifikasi.
 ```
