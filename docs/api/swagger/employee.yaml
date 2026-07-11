@@ -11,7 +11,7 @@ components:
 paths:
   /api/v1/employees:
     post:
-      summary: Create a new employee
+      summary: Step 1 - Create Employee Core
       tags:
         - Employee
       security:
@@ -27,8 +27,6 @@ paths:
                 - job_position_id
                 - join_date
                 - employment_status
-                - personal_data
-                - banks
               properties:
                 employee_code:
                   type: string
@@ -44,111 +42,27 @@ paths:
                   type: string
                   enum: [PERMANENT, CONTRACT, PROBATION, INTERNSHIP]
                   example: "PERMANENT"
-                personal_data:
-                  type: object
-                  required:
-                    - full_name
-                    - ktp_number
-                  properties:
-                    full_name:
-                      type: string
-                      example: "Bagus Yanuar"
-                    ktp_number:
-                      type: string
-                      example: "3171234567890123"
-                    gender:
-                      type: string
-                      enum: [MALE, FEMALE]
-                      example: "MALE"
-                    marital_status:
-                      type: string
-                      example: "SINGLE"
-                    ptkp_status:
-                      type: string
-                      example: "TK/0"
-                    religion:
-                      type: string
-                      example: "ISLAM"
-                banks:
-                  type: array
-                  minItems: 1
-                  items:
-                    type: object
-                    required:
-                      - bank_name
-                      - account_number
-                      - account_holder_name
-                    properties:
-                      bank_name:
-                        type: string
-                        example: "BCA"
-                      account_number:
-                        type: string
-                        example: "1234567890"
-                      account_holder_name:
-                        type: string
-                        example: "Bagus Yanuar"
-                      is_primary:
-                        type: boolean
-                        example: true
       responses:
         '201':
-          description: Employee created successfully
+          description: Core employee created successfully
           content:
             application/json:
               example:
                 code: 201
                 status: success
-                message: Employee created successfully
+                message: Core employee created successfully
                 data:
                   id: "550e8400-e29b-41d4-a716-446655440000"
-                  employee_code: "EMP-001"
-                  status: "ACTIVE"
-                  employment_status: "PERMANENT"
-                  created_at: "2024-01-15T10:00:00Z"
         '400':
           description: Bad Request (Invalid JSON or Input)
-          content:
-            application/json:
-              example:
-                code: 400
-                status: error
-                message: Invalid JSON format
-                errors: "missing field banks"
         '422':
           description: Validation Failed
-          content:
-            application/json:
-              example:
-                code: 422
-                status: error
-                message: Validation failed
-                errors:
-                  ktp_number: "ktp_number must be 16 characters"
-    get:
-      summary: List all employees
-      tags:
-        - Employee
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Successfully retrieved data
-          content:
-            application/json:
-              example:
-                code: 200
-                status: success
-                message: Successfully retrieved data
-                data:
-                  - id: "550e8400-e29b-41d4-a716-446655440000"
-                    employee_code: "EMP-001"
-                    status: "ACTIVE"
-                    employment_status: "PERMANENT"
-                    created_at: "2024-01-15T10:00:00Z"
+        '500':
+          description: Internal Server Error
+
   /api/v1/employees/{id}:
     get:
-      summary: Get employee by ID
+      summary: Get Employee Detail
       tags:
         - Employee
       security:
@@ -168,24 +82,39 @@ paths:
               example:
                 code: 200
                 status: success
-                message: Successfully retrieved data
+                message: Employee detail fetched successfully
                 data:
                   id: "550e8400-e29b-41d4-a716-446655440000"
                   employee_code: "EMP-001"
-                  status: "ACTIVE"
+                  job_position_id: "POS-001"
                   employment_status: "PERMANENT"
-                  created_at: "2024-01-15T10:00:00Z"
+                  join_date: "2024-01-15"
+                  status: "ACTIVE"
+                  personal_data:
+                    full_name: "Bagus Yanuar"
+                    ktp_number: "3201234567890001"
+                    gender: "MALE"
+                    marital_status: "SINGLE"
+                    ptkp_status: "TK/0"
+                    religion: "ISLAM"
+                  contact:
+                    personal_email: "bagus@example.com"
+                    phone_number: "081234567890"
+                    identity_address: "Jl. KTP No 1"
+                    residential_address: "Jl. Domisili No 2"
+                  banks:
+                    - bank_name: "BCA"
+                      account_number: "1234567890"
+                      account_holder_name: "Bagus Yanuar"
+                      is_primary: true
         '404':
           description: Employee not found
-          content:
-            application/json:
-              example:
-                code: 404
-                status: error
-                message: Employee not found
-                errors: null
+        '500':
+          description: Internal Server Error
+
+  /api/v1/employees/{id}/personal-data:
     put:
-      summary: Update employee
+      summary: Step 2 - Update Personal Data
       tags:
         - Employee
       security:
@@ -203,40 +132,50 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - full_name
+                - ktp_number
+                - gender
+                - marital_status
+                - ptkp_status
+                - religion
               properties:
-                employee_code:
+                full_name:
                   type: string
-                  example: "EMP-002"
-                job_position_id:
+                  example: "Bagus Yanuar"
+                ktp_number:
                   type: string
-                  format: uuid
-                employment_status:
+                  example: "3171234567890123"
+                gender:
                   type: string
-                  enum: [PERMANENT, CONTRACT, PROBATION, INTERNSHIP]
-                status:
+                  enum: [MALE, FEMALE]
+                  example: "MALE"
+                marital_status:
                   type: string
-                  enum: [ACTIVE, INACTIVE, SUSPENDED]
+                  example: "SINGLE"
+                ptkp_status:
+                  type: string
+                  example: "TK/0"
+                religion:
+                  type: string
+                  example: "ISLAM"
       responses:
         '200':
-          description: Employee updated successfully
-          content:
-            application/json:
-              example:
-                code: 200
-                status: success
-                message: Employee updated successfully
-                data: null
+          description: Personal data updated successfully
+        '400':
+          description: Bad Request
         '404':
           description: Employee not found
-          content:
-            application/json:
-              example:
-                code: 404
-                status: error
-                message: Employee not found
-                errors: null
-    delete:
-      summary: Delete employee
+        '409':
+          description: KTP duplicate
+        '422':
+          description: Validation Failed
+        '500':
+          description: Internal Server Error
+
+  /api/v1/employees/{id}/contacts:
+    put:
+      summary: Step 3 - Update Contacts
       tags:
         - Employee
       security:
@@ -248,22 +187,95 @@ paths:
           schema:
             type: string
             format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - personal_email
+                - phone_number
+                - identity_address
+                - residential_address
+              properties:
+                personal_email:
+                  type: string
+                  example: "bagus@example.com"
+                phone_number:
+                  type: string
+                  example: "08123456789"
+                identity_address:
+                  type: string
+                  example: "Jl. KTP No. 1"
+                residential_address:
+                  type: string
+                  example: "Jl. Domisili No. 2"
       responses:
         '200':
-          description: Employee deleted successfully
-          content:
-            application/json:
-              example:
-                code: 200
-                status: success
-                message: Employee deleted successfully
-                data: null
+          description: Contact updated successfully
+        '400':
+          description: Bad Request
         '404':
           description: Employee not found
-          content:
-            application/json:
-              example:
-                code: 404
-                status: error
-                message: Employee not found
-                errors: null
+        '422':
+          description: Validation Failed
+        '500':
+          description: Internal Server Error
+
+  /api/v1/employees/{id}/banks:
+    post:
+      summary: Step 4 - Save Banks
+      tags:
+        - Employee
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - banks
+              properties:
+                banks:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - bank_name
+                      - account_number
+                      - account_holder_name
+                      - is_primary
+                    properties:
+                      bank_name:
+                        type: string
+                        example: "BCA"
+                      account_number:
+                        type: string
+                        example: "1234567890"
+                      account_holder_name:
+                        type: string
+                        example: "Bagus Yanuar"
+                      is_primary:
+                        type: boolean
+                        example: true
+      responses:
+        '200':
+          description: Bank accounts saved successfully
+        '400':
+          description: Bad Request (e.g. Missing primary bank)
+        '404':
+          description: Employee not found
+        '422':
+          description: Validation Failed
+        '500':
+          description: Internal Server Error

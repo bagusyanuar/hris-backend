@@ -1,0 +1,96 @@
+meta {
+  name: Step 4 - Save Banks
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/employees/:id/banks
+  body: json
+  auth: bearer
+}
+
+params:path {
+  id: 
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "banks": [
+      {
+        "bank_name": "BCA",
+        "account_number": "1234567890",
+        "account_holder_name": "Bagus Yanuar",
+        "is_primary": true
+      }
+    ]
+  }
+}
+
+docs {
+  # Save Banks
+  
+  Menyimpan daftar rekening bank milik karyawan (Step 4 pada Progressive Save). Wajib ada minimal 1 bank yang diset sebagai `is_primary = true`.
+  
+  ## Expected Responses
+  
+  **200 OK**
+  ```json
+  {
+    "code": 200,
+    "status": "success",
+    "message": "Bank accounts saved successfully",
+    "data": null
+  }
+  ```
+
+  **400 Bad Request**
+  (Jika *is_primary* tidak ada yang true)
+  ```json
+  {
+    "code": 400,
+    "status": "error",
+    "message": "at least one primary bank account is required",
+    "errors": null
+  }
+  ```
+
+  **404 Not Found**
+  ```json
+  {
+    "code": 404,
+    "status": "error",
+    "message": "employee not found",
+    "errors": null
+  }
+  ```
+
+  **422 Unprocessable Entity**
+  ```json
+  {
+    "code": 422,
+    "status": "error",
+    "message": "Validation failed",
+    "errors": [
+      {
+        "field": "AccountNumber",
+        "message": "This field is required"
+      }
+    ]
+  }
+  ```
+
+  **500 Internal Server Error**
+  ```json
+  {
+    "code": 500,
+    "status": "error",
+    "message": "Internal Server Error",
+    "errors": null
+  }
+  ```
+}

@@ -1,0 +1,91 @@
+meta {
+  name: Step 3 - Update Contacts
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/api/v1/employees/:id/contacts
+  body: json
+  auth: bearer
+}
+
+params:path {
+  id: 
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "personal_email": "bagus@example.com",
+    "phone_number": "08123456789",
+    "identity_address": "Jl. KTP No. 1",
+    "residential_address": "Jl. Domisili No. 2"
+  }
+}
+
+docs {
+  # Update Contacts
+  
+  Melengkapi data kontak dari karyawan (Step 3 pada Progressive Save).
+  
+  ## Expected Responses
+  
+  **200 OK**
+  ```json
+  {
+    "code": 200,
+    "status": "success",
+    "message": "Contact updated successfully",
+    "data": null
+  }
+  ```
+
+  **400 Bad Request**
+  ```json
+  {
+    "code": 400,
+    "status": "error",
+    "message": "Employee ID is required",
+    "errors": null
+  }
+  ```
+
+  **404 Not Found**
+  ```json
+  {
+    "code": 404,
+    "status": "error",
+    "message": "employee not found",
+    "errors": null
+  }
+  ```
+
+  **422 Unprocessable Entity**
+  ```json
+  {
+    "code": 422,
+    "status": "error",
+    "message": "Validation failed",
+    "errors": [
+      {
+        "field": "PersonalEmail",
+        "message": "This field must be a valid email address"
+      }
+    ]
+  }
+  ```
+
+  **500 Internal Server Error**
+  ```json
+  {
+    "code": 500,
+    "status": "error",
+    "message": "Internal Server Error",
+    "errors": null
+  }
+  ```
+}

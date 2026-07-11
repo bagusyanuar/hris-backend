@@ -1,7 +1,7 @@
 meta {
-  name: Get Employee
+  name: Get Employee Detail
   type: http
-  seq: 2
+  seq: 5
 }
 
 get {
@@ -11,7 +11,7 @@ get {
 }
 
 params:path {
-  id: 550e8400-e29b-41d4-a716-446655440000
+  id: 
 }
 
 auth:bearer {
@@ -19,9 +19,10 @@ auth:bearer {
 }
 
 docs {
-  # Get Employee
+  # Get Employee Detail
   
-  Mendapatkan detail employee berdasarkan UUID.
+  Mendapatkan detail employee secara utuh beserta relasinya (Personal Data, Contacts, Banks).
+  Digunakan oleh FE untuk mengecek step Progressive Save mana yang masih null.
   
   ## Path Parameters
   - `id` (required): UUID dari Employee
@@ -33,14 +34,48 @@ docs {
   {
     "code": 200,
     "status": "success",
-    "message": "Successfully retrieved data",
+    "message": "Employee detail fetched successfully",
     "data": {
       "id": "550e8400-e29b-41d4-a716-446655440000",
       "employee_code": "EMP-001",
-      "status": "ACTIVE",
+      "job_position_id": "POS-001",
       "employment_status": "PERMANENT",
-      "created_at": "2024-01-15T10:00:00Z"
+      "join_date": "2024-01-15",
+      "status": "ACTIVE",
+      "personal_data": {
+        "full_name": "Bagus Yanuar",
+        "ktp_number": "3201234567890001",
+        "gender": "MALE",
+        "marital_status": "SINGLE",
+        "ptkp_status": "TK/0",
+        "religion": "ISLAM"
+      },
+      "contact": {
+        "personal_email": "bagus@example.com",
+        "phone_number": "081234567890",
+        "identity_address": "Jl. KTP No 1",
+        "residential_address": "Jl. Domisili No 2"
+      },
+      "banks": [
+        {
+          "bank_name": "BCA",
+          "account_number": "1234567890",
+          "account_holder_name": "Bagus Yanuar",
+          "is_primary": true
+        }
+      ]
     }
+  }
+  ```
+  *(Catatan: Jika ada step yang belum diisi, nilai objeknya akan `null`, misalnya `"contact": null`)*
+  
+  **400 Bad Request**
+  ```json
+  {
+    "code": 400,
+    "status": "error",
+    "message": "Employee ID is required",
+    "errors": null
   }
   ```
   
@@ -49,7 +84,17 @@ docs {
   {
     "code": 404,
     "status": "error",
-    "message": "Employee not found",
+    "message": "employee not found",
+    "errors": null
+  }
+  ```
+  
+  **500 Internal Server Error**
+  ```json
+  {
+    "code": 500,
+    "status": "error",
+    "message": "Internal Server Error",
     "errors": null
   }
   ```

@@ -1,0 +1,79 @@
+meta {
+  name: Step 1 - Create Employee Core
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/employees
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "employee_code": "EMP-001",
+    "job_position_id": "123e4567-e89b-12d3-a456-426614174000",
+    "join_date": "2024-01-15",
+    "employment_status": "PERMANENT"
+  }
+}
+
+docs {
+  # Create Employee Core
+  
+  Mendaftarkan data inti karyawan untuk mendapatkan Employee ID yang akan digunakan pada step selanjutnya.
+  
+  ## Expected Responses
+  
+  **201 Created**
+  ```json
+  {
+    "code": 201,
+    "status": "success",
+    "message": "Core employee created successfully",
+    "data": {
+      "id": "550e8400-e29b-41d4-a716-446655440000"
+    }
+  }
+  ```
+
+  **400 Bad Request**
+  ```json
+  {
+    "code": 400,
+    "status": "error",
+    "message": "Invalid JSON payload",
+    "errors": null
+  }
+  ```
+
+  **422 Unprocessable Entity**
+  ```json
+  {
+    "code": 422,
+    "status": "error",
+    "message": "Validation failed",
+    "errors": [
+      {
+        "field": "EmployeeCode",
+        "message": "This field is required"
+      }
+    ]
+  }
+  ```
+
+  **500 Internal Server Error**
+  ```json
+  {
+    "code": 500,
+    "status": "error",
+    "message": "Internal Server Error",
+    "errors": null
+  }
+  ```
+}

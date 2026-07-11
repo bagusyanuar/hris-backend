@@ -1,0 +1,103 @@
+meta {
+  name: Step 2 - Update Personal Data
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/api/v1/employees/:id/personal-data
+  body: json
+  auth: bearer
+}
+
+params:path {
+  id: 
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "full_name": "Bagus Yanuar",
+    "ktp_number": "3171234567890123",
+    "gender": "MALE",
+    "marital_status": "SINGLE",
+    "ptkp_status": "TK/0",
+    "religion": "ISLAM"
+  }
+}
+
+docs {
+  # Update Personal Data
+  
+  Melengkapi data personal dari karyawan (Step 2 pada Progressive Save).
+  
+  ## Expected Responses
+  
+  **200 OK**
+  ```json
+  {
+    "code": 200,
+    "status": "success",
+    "message": "Personal data updated successfully",
+    "data": null
+  }
+  ```
+
+  **400 Bad Request**
+  ```json
+  {
+    "code": 400,
+    "status": "error",
+    "message": "Employee ID is required",
+    "errors": null
+  }
+  ```
+
+  **404 Not Found**
+  ```json
+  {
+    "code": 404,
+    "status": "error",
+    "message": "employee not found",
+    "errors": null
+  }
+  ```
+
+  **409 Conflict**
+  ```json
+  {
+    "code": 409,
+    "status": "error",
+    "message": "ktp number already exists",
+    "errors": null
+  }
+  ```
+
+  **422 Unprocessable Entity**
+  ```json
+  {
+    "code": 422,
+    "status": "error",
+    "message": "Validation failed",
+    "errors": [
+      {
+        "field": "FullName",
+        "message": "This field is required"
+      }
+    ]
+  }
+  ```
+
+  **500 Internal Server Error**
+  ```json
+  {
+    "code": 500,
+    "status": "error",
+    "message": "Internal Server Error",
+    "errors": null
+  }
+  ```
+}
