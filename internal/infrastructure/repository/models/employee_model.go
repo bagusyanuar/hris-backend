@@ -9,15 +9,15 @@ import (
 )
 
 type EmployeeModel struct {
-	ID               string         `gorm:"primaryKey;type:varchar(50)"`
-	UserID           *string        `gorm:"type:varchar(50)"`
-	EmployeeCode     string         `gorm:"type:varchar(50);unique"`
-	JobPositionID    string         `gorm:"type:varchar(50);not null"`
-	EmploymentStatus string         `gorm:"type:varchar(20)"`
-	JoinDate         time.Time      `gorm:"type:date;not null"`
-	EndDate          *time.Time     `gorm:"type:date"`
-	ResignDate       *time.Time     `gorm:"type:date"`
-	Status           string         `gorm:"type:varchar(20);default:'ACTIVE'"`
+	ID               string     `gorm:"primaryKey;type:varchar(50)"`
+	UserID           *string    `gorm:"type:varchar(50)"`
+	EmployeeCode     string     `gorm:"type:varchar(50);unique"`
+	JobPositionID    string     `gorm:"type:varchar(50);not null"`
+	EmploymentStatus string     `gorm:"type:varchar(20)"`
+	JoinDate         time.Time  `gorm:"type:date;not null"`
+	EndDate          *time.Time `gorm:"type:date"`
+	ResignDate       *time.Time `gorm:"type:date"`
+	Status           string     `gorm:"type:varchar(20);default:'ACTIVE'"`
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 	DeletedAt        gorm.DeletedAt `gorm:"index"`
@@ -109,14 +109,14 @@ func EmployeeFromDomain(e *employee.Employee) *EmployeeModel {
 
 // Personal Data
 type EmployeePersonalDataModel struct {
-	ID            string    `gorm:"primaryKey;type:varchar(50)"`
-	EmployeeID    string    `gorm:"type:varchar(50);uniqueIndex;not null"`
-	FullName      string    `gorm:"type:varchar(150);not null"`
-	KtpNumber     string    `gorm:"type:varchar(16);unique;not null"`
-	Gender        string    `gorm:"type:varchar(10)"`
-	MaritalStatus string    `gorm:"type:varchar(20)"`
-	PtkpStatus    string    `gorm:"type:varchar(10)"`
-	Religion      string    `gorm:"type:varchar(30)"`
+	ID            string `gorm:"primaryKey;type:varchar(50)"`
+	EmployeeID    string `gorm:"type:varchar(50);uniqueIndex;not null"`
+	FullName      string `gorm:"type:varchar(150);not null"`
+	KtpNumber     string `gorm:"type:varchar(16);unique;not null"`
+	Gender        string `gorm:"type:varchar(10)"`
+	MaritalStatus string `gorm:"type:varchar(20)"`
+	PtkpStatus    string `gorm:"type:varchar(10)"`
+	Religion      string `gorm:"type:varchar(30)"`
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }
@@ -162,12 +162,12 @@ func PersonalDataFromDomain(d *employee.PersonalData) *EmployeePersonalDataModel
 
 // Contacts
 type EmployeeContactModel struct {
-	ID                 string    `gorm:"primaryKey;type:varchar(50)"`
-	EmployeeID         string    `gorm:"type:varchar(50);uniqueIndex;not null"`
-	PersonalEmail      string    `gorm:"type:varchar(100)"`
-	PhoneNumber        string    `gorm:"type:varchar(20)"`
-	IdentityAddress    string    `gorm:"type:text"`
-	ResidentialAddress string    `gorm:"type:text"`
+	ID                 string `gorm:"primaryKey;type:varchar(50)"`
+	EmployeeID         string `gorm:"type:varchar(50);uniqueIndex;not null"`
+	PersonalEmail      string `gorm:"type:varchar(100)"`
+	PhoneNumber        string `gorm:"type:varchar(20)"`
+	IdentityAddress    string `gorm:"type:text"`
+	ResidentialAddress string `gorm:"type:text"`
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
 }
@@ -209,12 +209,12 @@ func ContactFromDomain(c *employee.Contact) *EmployeeContactModel {
 
 // Banks
 type EmployeeBankModel struct {
-	ID                string    `gorm:"primaryKey;type:varchar(50)"`
-	EmployeeID        string    `gorm:"type:varchar(50);not null"`
-	BankName          string    `gorm:"type:varchar(50);not null"`
-	AccountNumber     string    `gorm:"type:varchar(50);not null"`
-	AccountHolderName string    `gorm:"type:varchar(100);not null"`
-	IsPrimary         bool      `gorm:"default:true"`
+	ID                string `gorm:"primaryKey;type:varchar(50)"`
+	EmployeeID        string `gorm:"type:varchar(50);not null"`
+	BankName          string `gorm:"type:varchar(50);not null"`
+	AccountNumber     string `gorm:"type:varchar(50);not null"`
+	AccountHolderName string `gorm:"type:varchar(100);not null"`
+	IsPrimary         bool   `gorm:"default:true"`
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 }
@@ -256,14 +256,14 @@ func BankFromDomain(b *employee.Bank) *EmployeeBankModel {
 
 // Education
 type EmployeeEducationModel struct {
-	ID              string    `gorm:"primaryKey;type:varchar(50)"`
-	EmployeeID      string    `gorm:"type:varchar(50);not null"`
-	Level           string    `gorm:"type:varchar(20)"`
-	InstitutionName string    `gorm:"type:varchar(150)"`
-	Major           string    `gorm:"type:varchar(100)"`
-	StartYear       int       `gorm:"type:int"`
-	EndYear         int       `gorm:"type:int"`
-	Score           float64   `gorm:"type:decimal(5,2)"`
+	ID              string  `gorm:"primaryKey;type:varchar(50)"`
+	EmployeeID      string  `gorm:"type:varchar(50);not null"`
+	Level           string  `gorm:"type:varchar(20)"`
+	InstitutionName string  `gorm:"type:varchar(150)"`
+	Major           string  `gorm:"type:varchar(100)"`
+	StartYear       int     `gorm:"type:int"`
+	EndYear         int     `gorm:"type:int"`
+	Score           float64 `gorm:"type:decimal(5,2)"`
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
@@ -309,10 +309,10 @@ func EducationFromDomain(e *employee.Education) *EmployeeEducationModel {
 
 // Documents
 type EmployeeDocumentModel struct {
-	ID           string    `gorm:"primaryKey;type:varchar(50)"`
-	EmployeeID   string    `gorm:"type:varchar(50);not null"`
-	DocumentType string    `gorm:"type:varchar(50)"`
-	DocumentURL  string    `gorm:"type:text;not null"`
+	ID           string `gorm:"primaryKey;type:varchar(50)"`
+	EmployeeID   string `gorm:"type:varchar(50);not null"`
+	DocumentType string `gorm:"type:varchar(50)"`
+	DocumentURL  string `gorm:"type:text;not null"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

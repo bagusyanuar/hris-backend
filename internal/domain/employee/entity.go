@@ -25,7 +25,7 @@ type Employee struct {
 	Status           string
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
-	
+
 	// Relations for Progressive Save / Detail
 	PersonalData *PersonalData
 	Contact      *Contact
