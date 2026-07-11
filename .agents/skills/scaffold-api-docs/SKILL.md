@@ -17,18 +17,23 @@ Sebelum menulis file dokumentasi, AI **WAJIB**:
 Setiap dokumentasi API harus dibagi berdasarkan **Domain** (bukan *monolithic* di satu file) untuk kemudahan tim Frontend. 
 Ada 2 jenis dokumentasi yang wajib dibuat secara berbarengan:
 
-### 1. Swagger OpenAPI (YAML)
-Lokasi: `docs/api/swagger/<domain>.yaml`
-- Buat file `.yaml` dengan nama domain yang bersangkutan (contoh: `auth.yaml`, `employee.yaml`).
-- Di dalam file, definisikan `openapi: 3.0.3` dan `info`.
-- Definisikan tipe otorisasi di `components.securitySchemes`.
-- Setiap endpoint di `paths` harus memiliki:
-  - `summary` & `tags` (tag diisi nama domain).
-  - `requestBody` jika ada, pastikan menandai field mana saja yang `required`.
-  - Berikan `example` untuk setiap `properties`.
-  - Daftarkan **seluruh kemungkinan respons** (`responses`) yang ditemukan saat fase investigasi di `handler.go`. Pastikan JSON example mengikuti standar `pkg/response`.
-  - **Aturan 422 Validation Error**: Khusus untuk status 422, wajib menyertakan contoh *array format error* dari Gofiber/Validator.
-  - **Hapus Rute Usang**: Pastikan untuk menghapus rute *dummy/monolith* jika sistem sudah menerapkan pola modular/Progressive Save.
+20: ### 1. Swagger OpenAPI (YAML)
+21: Lokasi: `docs/api/swagger/<domain>.yaml`
+22: - Buat file `.yaml` dengan nama domain yang bersangkutan (contoh: `auth.yaml`, `employee.yaml`).
+23: - Di dalam file, definisikan `openapi: 3.0.3` dan `info`.
+24: - Definisikan tipe otorisasi di `components.securitySchemes`.
+25: - Setiap endpoint di `paths` harus memiliki:
+26:   - `summary` & `tags` (tag diisi nama domain).
+27:   - `requestBody` jika ada, pastikan menandai field mana saja yang `required`.
+28:   - Berikan `example` untuk setiap `properties`.
+29:   - Daftarkan **seluruh kemungkinan respons** (`responses`) yang ditemukan saat fase investigasi di `handler.go`. Pastikan JSON example mengikuti standar `pkg/response`.
+30:   - **Aturan 422 Validation Error**: Khusus untuk status 422, wajib menyertakan contoh *array format error* dari Gofiber/Validator.
+31:   - **Hapus Rute Usang**: Pastikan untuk menghapus rute *dummy/monolith* jika sistem sudah menerapkan pola modular/Progressive Save.
+32: - **Registrasi Docker Compose**: Ketika membuat file spesifikasi YAML baru (domain baru), AI **WAJIB** mendaftarkannya ke dalam environment variable `URLS` di file [docker-compose.yaml](file:///Users/dystopia/go/hris-backend/docs/api/swagger/docker-compose.yaml) agar langsung dapat diakses lewat dropdown Swagger UI lokal.
+33: - **Versioning (Penting!)**: Jika terjadi perubahan, perbaikan, atau penambahan endpoint pada API contract, AI **WAJIB** menaikkan versi API contract menggunakan format **Semantic Versioning (SemVer, e.g., MAJOR.MINOR.PATCH)** pada field `info.version` di file Swagger YAML, serta menyesuaikan info versi pada bagian dokumentasi Bruno jika relevan.
+
+
+
 
 ### 2. Bruno Collection
 Lokasi: `docs/api/bruno/<Domain>/<EndpointName>.bru`

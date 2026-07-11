@@ -1,0 +1,16 @@
+services:
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    container_name: hris-swagger-ui
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/usr/share/nginx/html/swagger
+    environment:
+      URLS: |
+        [
+          { "url": "swagger/auth.yaml", "name": "Auth API" },
+          { "url": "swagger/employee.yaml", "name": "Employee API" },
+          { "url": "swagger/organization.yaml", "name": "Organization API" },
+          { "url": "swagger/user.yaml", "name": "User API" }
+        ]
