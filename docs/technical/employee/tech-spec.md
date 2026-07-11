@@ -57,36 +57,27 @@ erDiagram
 
 ## 5. API Contracts
 
-### 5.1. Create Employee
-**`POST /api/v1/employees`**
-- **Request Payload:**
-```json
-{
-  "employee_code": "HR-001",
-  "job_position_id": "uuid-here",
-  "join_date": "2024-01-01",
-  "employment_status": "PERMANENT",
-  "personal_data": {
-    "full_name": "Budi Santoso",
-    "ktp_number": "1234567890123456",
-    "gender": "MALE",
-    "marital_status": "MARRIED",
-    "ptkp_status": "K/1"
-  },
-  "banks": [
-    {
-      "bank_name": "BCA",
-      "account_number": "1234567890",
-      "account_holder_name": "Budi Santoso",
-      "is_primary": true
-    }
-  ]
-}
-```
-- **Response (201 Created):** Standard API response containing the new Employee ID.
+### 5.1. Progressive Onboarding Endpoints
+Proses pembuatan Employee menggunakan pola *Progressive Save* (Disimpan per step UI).
+
+1. **Step 1: Core Info (`POST /api/v1/employees`)**
+   - Payload: `employee_code`, `job_position_id`, `join_date`, `employment_status`.
+   - Response: `employee_id` (UUID)
+
+2. **Step 2: Personal Data (`PUT /api/v1/employees/{id}/personal-data`)**
+   - Payload: `full_name`, `ktp_number`, `gender`, `marital_status`, `ptkp_status`, `religion`.
+
+3. **Step 3: Contacts (`PUT /api/v1/employees/{id}/contacts`)**
+   - Payload: `personal_email`, `phone_number`, `identity_address`, `residential_address`.
+
+4. **Step 4: Banks (`POST /api/v1/employees/{id}/banks`)**
+   - Payload: Array of `bank_name`, `account_number`, `account_holder_name`, `is_primary`.
+
+5. **Step 5: Documents & Education (Optional)**
+   - Upload documents or insert educations via dedicated endpoints (`POST /api/v1/employees/{id}/documents`).
 
 ## 6. Implementation Details & Algorithms
-- **Transactions (ACID):** Creating an employee involves inserting into multiple tables (`employees`, `employee_personal_data`, `employee_banks`). This **MUST** be wrapped in a single database transaction at the Application Service layer.
+- **Granular Updates (Progressive Save):** Karena menggunakan pola simpan bertahap, setiap endpoint hanya berfokus pada tabel agregatnya sendiri. Tidak ada lagi satu buah *Giant Database Transaction* yang merangkum keseluruhan data. Hal ini meminimalisir *lock contention* di DB dan mengisolasi validasi.
 - **Domain Errors:**
   - `ErrEmployeeNotFound` (404)
   - `ErrKTPDuplicate` (422)

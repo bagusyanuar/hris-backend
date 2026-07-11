@@ -44,7 +44,7 @@ Mengelola data induk (Core Data) karyawan secara terpusat untuk menggantikan pen
 ## 5. Technical & Architectural Constraints
 - **Domain-Driven Design (DDD):** Kode harus terisolasi di domainnya sendiri (`internal/domain/employee`). Modul ini dilarang mengambil data dari DB langsung (*bypass*) ke tabel modul lain, harus melalui interface/API internal.
 - **Data Deletion:** Dilarang menggunakan aksi `HARD DELETE` (`DELETE FROM ...`) untuk tabel karyawan demi integritas sejarah penggajian. Wajib menggunakan `SOFT DELETE` (mengisi `deleted_at`).
-- **UI Constraints (Frontend):** Form penambahan karyawan (Create) sangat panjang, sehingga **wajib** dirender dengan gaya **Wizard / Multi-step Form** (Step 1: Posisi, Step 2: Personal, Step 3: Bank & Kontak).
+- **UI Constraints (Frontend):** Form penambahan karyawan (Create) sangat panjang, sehingga **wajib** dirender dengan gaya **Wizard / Multi-step Form**. Setiap perpindahan step harus melakukan penyimpanan progresif (Progressive Save) ke Backend melalui endpoint yang berbeda (misal: Step 1 Simpan Core Data, Step 2 Simpan Personal, dst) untuk mencegah hilangnya input jika terjadi kegagalan sistem atau browser ter-refresh.
 
 ## 6. Dependencies (Ketergantungan)
 - **Modul Auth:** Pembuatan Karyawan Baru berstatus **Blokir** (Dependent) pada keberhasilan pembuatan akun di tabel `users`. Karyawan wajib memiliki `user_id`.

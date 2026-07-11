@@ -12,11 +12,11 @@
 - **Context:** The `employees` table can become a "God Table" with 50+ columns if we combine employment data (job position, status) with personal data (KTP, blood type, marriage status).
 - **Decision:** Split into `employees` (core employment) and `employee_personal_data` (demographics) with a 1-to-1 relationship to keep table widths manageable and improve query performance for purely organizational queries.
 
-## ADR-003: Strict Database Transactions for Creation
-- **Date:** 2026-07-10
-- **Status:** Accepted
-- **Context:** Creating an employee involves inserting into 3+ tables simultaneously (`employees`, `employee_personal_data`, `employee_banks`).
-- **Decision:** The `Application Service` layer must wrap the entire creation process in a database transaction (using `context.Context`). If insertion of the bank account fails, the core employee record must be rolled back automatically.
+## ADR-003: Progressive Save (Multiple Endpoints) for Creation
+- **Date:** 2026-07-11
+- **Status:** Accepted (Revised from Strict Single Transaction)
+- **Context:** Creating an employee involves inserting into multiple tables (`employees`, `employee_personal_data`, `employee_banks`). Initially, this was planned as a single massive transaction. However, this risks data loss on the frontend if a validation error occurs at the very end of a long wizard form.
+- **Decision:** Implement a **Progressive Save** approach. The Frontend will call separate endpoints per step (`POST /employees` -> `PUT /employees/{id}/personal-data`, etc.). This allows 'Save as Draft', simplifies file uploads, and isolates validation errors per step.
 
 ## ADR-004: UUID v4 as Primary Keys
 - **Date:** 2026-07-10
