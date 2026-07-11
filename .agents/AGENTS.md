@@ -106,14 +106,22 @@ graph TD
 3. **Dependency Injection (Google Wire)**: Proyek ini wajib menggunakan `google/wire` untuk injeksi dependensi secara compile-time. Semua dependensi (Repository, Service, Handler) di-registrasikan ke dalam `wire.ProviderSet` di dalam file `internal/di/wire.go`. File `cmd/api/server.go` akan bersih karena cukup memanggil `di.InitializeAPI(s.db, tokenGenerator)`.
 4. **Cross-Domain Communication (Bounded Contexts)**: Untuk saat ini, komunikasi antar modul/domain dilakukan secara langsung (Synchronous) melalui injeksi *Application Service* modul lain menggunakan `google/wire` (bukan menggunakan Message Broker/Event Bus). Hindari injeksi *Repository* modul lain secara langsung ke dalam *Service*; selalu gunakan *Application Service* modul tersebut sebagai jembatan/API internal.
 5. **Configuration**: Load konfigurasi dari environment variables atau config file sekali saja di `cmd/api/main.go` menggunakan library seperti `viper` atau `envconfig`, lalu teruskan struct config ke service yang membutuhkan.
+6. **Acronym Naming Consistency**: Ikuti standar Go untuk akronim (misal ID, HTTP, URL, API). Jika menggunakan *CamelCase* untuk akronim lokal seperti KTP atau PTKP, pastikan konsisten secara presisi (termasuk huruf besar-kecil) antara *Domain Entity*, *GORM Model*, dan *DTO*. Contoh: gunakan `PtkpStatus` di semua layer, jangan dicampur dengan `PTKPStatus`.
+7. **Mandatory Build Check**: AI WAJIB menjalankan perintah `go build ./...` di terminal setiap kali selesai men-generate atau memodifikasi kumpulan file `.go`. Tujuannya untuk menangkap *syntax error*, salah *type*, atau *import* yang hilang sebelum melaporkan pekerjaan selesai kepada user.
 
 ---
 
 ## 5. Dokumentasi API (Swagger & Bruno)
 
 Setiap endpoint API yang dibuat harus didokumentasikan di dua tempat dengan aturan "Split by Domain" (per file untuk setiap domain, bukan monolithic):
-1. **Swagger OpenAPI (YAML)** di `docs/api/swagger/<domain>.yaml`. Wajib mendeskripsikan `requestBody`, `responses` lengkap (termasuk 200, 400, 401, dsb.), `required` fields, dan `example`.
-2. **Bruno Collection** di `docs/api/bruno/<Domain>/`. Wajib menyertakan blok `docs { ... }` yang menjelaskan endpoint, `required` properties, dan *Expected Responses* (sama seperti Swagger).
+
+**ATURAN WAJIB (STRICT RULES):**
+- **Anti-Duplikasi:** AI WAJIB mengecek eksistensi rute/file yang sudah ada (menggunakan fitur *search* atau `ls`) sebelum meng-generate endpoint baru untuk menghindari duplikasi.
+- **Konsistensi Variabel URL:** Parameter di URL harus konsisten. Pada dokumentasi Swagger gunakan `{id}`, pada Bruno gunakan `:id`. Jangan gunakan penamaan *custom* yang bisa membingungkan FE (seperti `:employee_id` atau `{{employee_id}}`).
+- **Exhaustive Error Responses:** Dokumentasi *Response* tidak boleh asal-asalan. AI WAJIB membaca file `handler.go` untuk mendaftar SEMUA HTTP Error Code yang mungkin terjadi (`200`, `201`, `400`, `404`, `409`, `422`, `500`). Khusus untuk `422 Unprocessable Entity`, wajib menyertakan contoh array error dari validator.
+
+1. **Swagger OpenAPI (YAML)** di `docs/api/swagger/<domain>.yaml`. Wajib mendeskripsikan `requestBody`, `responses` super komplit, `required` fields, dan `example`. Pastikan untuk menghapus rute *dummy/monolith* jika sistem sudah menerapkan pola modular/Progressive Save.
+2. **Bruno Collection** di `docs/api/bruno/<Domain>/<EndpointName>.bru`. Wajib menyertakan blok `docs { ... }` (menggunakan format Markdown) yang menjelaskan endpoint, `required` properties, dan seluruh variasi *Expected Responses* persis seperti yang tercatat di Swagger.
 
 ---
 

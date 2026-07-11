@@ -28,6 +28,7 @@ You MUST generate the code systematically, from the innermost layer (core) to th
 6. **API Documentation:** Generate the Swagger YAML and Bruno Collection for the new module as per the `scaffold-api-docs` skill.
 
 ## Step 3: Verification & Walkthrough
-1. After generating all the files, present a summary of the new files to the user.
-2. Ensure you remind the user to run database migrations if there are new DBML changes.
-3. Ask the user if they want to run a quick test on the new endpoints.
+1. **MANDATORY**: Run `go build ./...` to verify there are no syntax or type errors in the newly generated code. If it fails, fix the errors first.
+2. After generating and verifying all the files, present a summary of the new files to the user.
+3. Ensure you remind the user to run database migrations if there are new DBML changes.
+4. Ask the user if they want to run a quick test on the new endpoints.
