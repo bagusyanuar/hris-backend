@@ -3,13 +3,15 @@ package employee
 import "context"
 
 type Repository interface {
-	Save(ctx context.Context, emp *Employee) error
+	SaveCore(ctx context.Context, emp *Employee) error
 	FindByID(ctx context.Context, id string) (*Employee, error)
-	FindAll(ctx context.Context) ([]*Employee, error)
-	Update(ctx context.Context, emp *Employee) error
-	Delete(ctx context.Context, id string) error
 
-	// ExecuteInTx executes the provided function within a database transaction.
-	// The transaction context must be passed down to Repository methods inside the function.
-	ExecuteInTx(ctx context.Context, fn func(txCtx context.Context) error) error
+	SavePersonalData(ctx context.Context, data *PersonalData) error
+	FindByKTP(ctx context.Context, ktpNumber string) (*PersonalData, error)
+
+	SaveContact(ctx context.Context, contact *Contact) error
+
+	SaveBanks(ctx context.Context, employeeID string, banks []*Bank) error
+	SaveEducations(ctx context.Context, employeeID string, educations []*Education) error
+	SaveDocument(ctx context.Context, doc *Document) error
 }

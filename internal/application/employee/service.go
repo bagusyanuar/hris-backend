@@ -4,124 +4,164 @@ import (
 	"context"
 	"time"
 
-	"github.com/bagusyanuar/hris-backend/internal/domain/employee"
-	"github.com/google/uuid"
+	domain "github.com/bagusyanuar/hris-backend/internal/domain/employee"
 )
 
 type Service struct {
-	repo employee.Repository
+	repo domain.Repository
 }
 
-func NewService(repo employee.Repository) *Service {
+func NewService(repo domain.Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Create(ctx context.Context, req CreateEmployeeRequest) (*EmployeeResponse, error) {
-	// Parse dates
-	joinDate, err := time.Parse("2006-01-02", req.JoinDate)
+func (s *Service) CreateCore(ctx context.Context, req CreateEmployeeRequest) (*CreateEmployeeResponse, error) {
+	parsedJoinDate, err := time.Parse("2006-01-02", req.JoinDate)
 	if err != nil {
-		return nil, employee.ErrInvalidInput
+		return nil, domain.ErrInvalidInput
 	}
 
-	// 1. Mock Auth Module Integration (Generate User ID for now)
-	mockUserID := uuid.NewString()
-
-	// 2. Instantiate Aggregate Root
-	emp, err := employee.NewEmployee(mockUserID, req.EmployeeCode, req.JobPositionID, req.EmploymentStatus, joinDate)
+	emp, err := domain.NewEmployee(req.EmployeeCode, req.JobPositionID, req.EmploymentStatus, parsedJoinDate)
 	if err != nil {
 		return nil, err
 	}
 
-	// Handle optional pointers safely
-	gender := ""
-	if req.PersonalData.Gender != nil {
-		gender = *req.PersonalData.Gender
-	}
-	maritalStatus := ""
-	if req.PersonalData.MaritalStatus != nil {
-		maritalStatus = *req.PersonalData.MaritalStatus
-	}
-	ptkpStatus := ""
-	if req.PersonalData.PtkpStatus != nil {
-		ptkpStatus = *req.PersonalData.PtkpStatus
-	}
-	religion := ""
-	if req.PersonalData.Religion != nil {
-		religion = *req.PersonalData.Religion
-	}
-
-	// 3. Attach Personal Data
-	emp.SetPersonalData(
-		req.PersonalData.FullName,
-		req.PersonalData.KtpNumber,
-		gender,
-		maritalStatus,
-		ptkpStatus,
-		religion,
-	)
-
-	// 4. Attach Banks & Validate Primary
-	hasPrimary := false
-	for _, b := range req.Banks {
-		emp.AddBank(b.BankName, b.AccountNumber, b.AccountHolderName, b.IsPrimary)
-		if b.IsPrimary {
-			hasPrimary = true
-		}
-	}
-
-	if !hasPrimary {
-		return nil, employee.ErrPrimaryBankRequired
-	}
-
-	// 5. Execute in Database Transaction
-	err = s.repo.ExecuteInTx(ctx, func(txCtx context.Context) error {
-		// Inside this callback, txCtx contains the *gorm.DB transaction object.
-		return s.repo.Save(txCtx, emp)
-	})
-
-	if err != nil {
+	if err := s.repo.SaveCore(ctx, emp); err != nil {
 		return nil, err
 	}
 
-	return &EmployeeResponse{
+	return &CreateEmployeeResponse{
 		ID:               emp.ID,
 		EmployeeCode:     emp.EmployeeCode,
-		Status:           emp.Status,
 		EmploymentStatus: emp.EmploymentStatus,
+		Status:           emp.Status,
 		CreatedAt:        emp.CreatedAt,
 	}, nil
 }
 
-func (s *Service) GetByID(ctx context.Context, id string) (*employee.Employee, error) {
-	return s.repo.FindByID(ctx, id)
-}
+func (s *Service) UpdatePersonalData(ctx context.Context, employeeID string, req UpdatePersonalDataRequest) error {
+	// check if employee exists
+	if _, err := s.repo.FindByID(ctx, employeeID); err != nil {
+		return err
+	}
 
-func (s *Service) FindAll(ctx context.Context) ([]*employee.Employee, error) {
-	return s.repo.FindAll(ctx)
-}
+	// check duplicate ktp
+	existingKtp, err := s.repo.FindByKTP(ctx, req.KtpNumber)
+	if err != nil {
+		return err
+	}
+	if existingKtp != nil && existingKtp.EmployeeID != employeeID {
+		return domain.ErrKTPDuplicate
+	}
 
-func (s *Service) Update(ctx context.Context, id string, req UpdateEmployeeRequest) error {
-	emp, err := s.repo.FindByID(ctx, id)
+	personalData, err := domain.NewPersonalData(
+		employeeID,
+		req.FullName,
+		req.KtpNumber,
+		req.Gender,
+		req.MaritalStatus,
+		req.PtkpStatus,
+		req.Religion,
+	)
 	if err != nil {
 		return err
 	}
 
-	if req.EmployeeCode != nil {
-		emp.EmployeeCode = *req.EmployeeCode
-	}
-	if req.JobPositionID != nil {
-		emp.JobPositionID = *req.JobPositionID
-	}
-	if req.EmploymentStatus != nil {
-		emp.EmploymentStatus = *req.EmploymentStatus
-	}
-	if req.Status != nil {
-		emp.Status = *req.Status
-	}
-
-	return s.repo.Update(ctx, emp)
+	return s.repo.SavePersonalData(ctx, personalData)
 }
 
-func (s *Service) Delete(ctx context.Context, id string) error {
-	return s.repo.Delete(ctx, id)
+func (s *Service) UpdateContact(ctx context.Context, employeeID string, req UpdateContactRequest) error {
+	if _, err := s.repo.FindByID(ctx, employeeID); err != nil {
+		return err
+	}
+
+	contact, err := domain.NewContact(
+		employeeID,
+		req.PersonalEmail,
+		req.PhoneNumber,
+		req.IdentityAddress,
+		req.ResidentialAddress,
+	)
+	if err != nil {
+		return err
+	}
+
+	return s.repo.SaveContact(ctx, contact)
+}
+
+func (s *Service) SaveBanks(ctx context.Context, employeeID string, req SaveBanksRequest) error {
+	if _, err := s.repo.FindByID(ctx, employeeID); err != nil {
+		return err
+	}
+
+	var hasPrimary bool
+	var domainBanks []*domain.Bank
+
+	for _, b := range req.Banks {
+		if b.IsPrimary {
+			hasPrimary = true
+		}
+		bank, err := domain.NewBank(employeeID, b.BankName, b.AccountNumber, b.AccountHolderName, b.IsPrimary)
+		if err != nil {
+			return err
+		}
+		domainBanks = append(domainBanks, bank)
+	}
+
+	if !hasPrimary {
+		return domain.ErrPrimaryBankRequired
+	}
+
+	return s.repo.SaveBanks(ctx, employeeID, domainBanks)
+}
+
+func (s *Service) GetEmployeeDetail(ctx context.Context, employeeID string) (*GetEmployeeDetailResponse, error) {
+	emp, err := s.repo.FindByID(ctx, employeeID)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &GetEmployeeDetailResponse{
+		ID:               emp.ID,
+		EmployeeCode:     emp.EmployeeCode,
+		JobPositionID:    emp.JobPositionID,
+		EmploymentStatus: emp.EmploymentStatus,
+		JoinDate:         emp.JoinDate.Format("2006-01-02"),
+		Status:           emp.Status,
+	}
+
+	if emp.PersonalData != nil {
+		res.PersonalData = &PersonalDataResponse{
+			FullName:      emp.PersonalData.FullName,
+			KtpNumber:     emp.PersonalData.KtpNumber,
+			Gender:        emp.PersonalData.Gender,
+			MaritalStatus: emp.PersonalData.MaritalStatus,
+			PtkpStatus:    emp.PersonalData.PtkpStatus,
+			Religion:      emp.PersonalData.Religion,
+		}
+	}
+
+	if emp.Contact != nil {
+		res.Contact = &ContactResponse{
+			PersonalEmail:      emp.Contact.PersonalEmail,
+			PhoneNumber:        emp.Contact.PhoneNumber,
+			IdentityAddress:    emp.Contact.IdentityAddress,
+			ResidentialAddress: emp.Contact.ResidentialAddress,
+		}
+	}
+
+	if len(emp.Banks) > 0 {
+		var banks []BankResponse
+		for _, b := range emp.Banks {
+			banks = append(banks, BankResponse{
+				BankName:          b.BankName,
+				AccountNumber:     b.AccountNumber,
+				AccountHolderName: b.AccountHolderName,
+				IsPrimary:         b.IsPrimary,
+			})
+		}
+		res.Banks = banks
+	}
+
+	return res, nil
 }

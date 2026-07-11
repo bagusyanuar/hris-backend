@@ -2,13 +2,12 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/bagusyanuar/hris-backend/internal/domain/employee"
 	"github.com/bagusyanuar/hris-backend/internal/infrastructure/repository/models"
 	"gorm.io/gorm"
 )
-
-type txKey struct{}
 
 type EmployeeRepository struct {
 	db *gorm.DB
@@ -18,69 +17,81 @@ func NewEmployeeRepository(db *gorm.DB) employee.Repository {
 	return &EmployeeRepository{db: db}
 }
 
-// getDB returns the transaction DB if it exists in context, otherwise returns the standard DB
-func (r *EmployeeRepository) getDB(ctx context.Context) *gorm.DB {
-	tx, ok := ctx.Value(txKey{}).(*gorm.DB)
-	if ok && tx != nil {
-		return tx
-	}
-	return r.db.WithContext(ctx)
-}
-
-func (r *EmployeeRepository) ExecuteInTx(ctx context.Context, fn func(txCtx context.Context) error) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		txCtx := context.WithValue(ctx, txKey{}, tx)
-		return fn(txCtx)
-	})
-}
-
-func (r *EmployeeRepository) Save(ctx context.Context, emp *employee.Employee) error {
+func (r *EmployeeRepository) SaveCore(ctx context.Context, emp *employee.Employee) error {
 	model := models.EmployeeFromDomain(emp)
-	// Full association save
-	return r.getDB(ctx).Save(model).Error
+	return r.db.WithContext(ctx).Save(model).Error
 }
 
 func (r *EmployeeRepository) FindByID(ctx context.Context, id string) (*employee.Employee, error) {
 	var model models.EmployeeModel
-	err := r.getDB(ctx).
+	if err := r.db.WithContext(ctx).
 		Preload("PersonalData").
+		Preload("Contact").
 		Preload("Banks").
-		Where("id = ?", id).
-		First(&model).Error
-
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		Preload("Educations").
+		Preload("Documents").
+		First(&model, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, employee.ErrEmployeeNotFound
 		}
 		return nil, err
 	}
-
 	return model.ToDomain(), nil
 }
 
-func (r *EmployeeRepository) FindAll(ctx context.Context) ([]*employee.Employee, error) {
-	var dbModels []models.EmployeeModel
-	err := r.getDB(ctx).
-		Preload("PersonalData").
-		Find(&dbModels).Error
+func (r *EmployeeRepository) SavePersonalData(ctx context.Context, data *employee.PersonalData) error {
+	model := models.PersonalDataFromDomain(data)
+	return r.db.WithContext(ctx).Save(model).Error
+}
 
-	if err != nil {
+func (r *EmployeeRepository) FindByKTP(ctx context.Context, ktpNumber string) (*employee.PersonalData, error) {
+	var model models.EmployeePersonalDataModel
+	if err := r.db.WithContext(ctx).First(&model, "ktp_number = ?", ktpNumber).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil // not found is fine, means no duplicate
+		}
 		return nil, err
 	}
-
-	var domains []*employee.Employee
-	for _, m := range dbModels {
-		domains = append(domains, m.ToDomain())
-	}
-	return domains, nil
+	return model.ToDomain(), nil
 }
 
-func (r *EmployeeRepository) Update(ctx context.Context, emp *employee.Employee) error {
-	model := models.EmployeeFromDomain(emp)
-	// Omit relationships on standard update to avoid unintended overwrites, handle separately if needed
-	return r.getDB(ctx).Omit("PersonalData", "Banks").Updates(model).Error
+func (r *EmployeeRepository) SaveContact(ctx context.Context, contact *employee.Contact) error {
+	model := models.ContactFromDomain(contact)
+	return r.db.WithContext(ctx).Save(model).Error
 }
 
-func (r *EmployeeRepository) Delete(ctx context.Context, id string) error {
-	return r.getDB(ctx).Delete(&models.EmployeeModel{}, "id = ?", id).Error
+func (r *EmployeeRepository) SaveBanks(ctx context.Context, employeeID string, banks []*employee.Bank) error {
+	// Start a transaction to replace banks
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("employee_id = ?", employeeID).Delete(&models.EmployeeBankModel{}).Error; err != nil {
+			return err
+		}
+		for _, b := range banks {
+			model := models.BankFromDomain(b)
+			if err := tx.Create(model).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func (r *EmployeeRepository) SaveEducations(ctx context.Context, employeeID string, educations []*employee.Education) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("employee_id = ?", employeeID).Delete(&models.EmployeeEducationModel{}).Error; err != nil {
+			return err
+		}
+		for _, ed := range educations {
+			model := models.EducationFromDomain(ed)
+			if err := tx.Create(model).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func (r *EmployeeRepository) SaveDocument(ctx context.Context, doc *employee.Document) error {
+	model := models.DocumentFromDomain(doc)
+	return r.db.WithContext(ctx).Save(model).Error
 }

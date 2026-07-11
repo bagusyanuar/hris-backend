@@ -3,10 +3,12 @@ package employee
 import "github.com/gofiber/fiber/v3"
 
 func RegisterRoutes(router fiber.Router, h *Handler) {
-	api := router.Group("/api/v1/employees")
-	api.Post("/", h.Create)
-	api.Get("/", h.FindAll)
-	api.Get("/:id", h.Get)
-	api.Put("/:id", h.Update)
-	api.Delete("/:id", h.Delete)
+	employeeGroup := router.Group("/employees")
+	
+	// Progressive Creation Endpoints
+	employeeGroup.Post("/", h.CreateCore)
+	employeeGroup.Get("/:id", h.GetByID)
+	employeeGroup.Put("/:id/personal-data", h.UpdatePersonalData)
+	employeeGroup.Put("/:id/contacts", h.UpdateContact)
+	employeeGroup.Post("/:id/banks", h.SaveBanks)
 }
