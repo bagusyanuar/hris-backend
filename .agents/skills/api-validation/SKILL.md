@@ -24,7 +24,7 @@ type CreateDepartmentRequest struct {
 ## 2. Cara Eksekusi Validasi di Handler
 Panggil *wrapper* yang ada di `pkg/validator` untuk memvalidasi struct, setelah JSON di-*bind*. Jika gagal, WAJIB mengembalikan HTTP Status `422 Unprocessable Entity` menggunakan `response.Error`.
 
-Contoh implementasi di Fiber handler (`internal/interfaces/http/<domain>/handler.go`):
+Contoh implementasi di Fiber handler (`internal/<domain>/transport/http/handler.go`):
 ```go
 import (
 	"github.com/bagusyanuar/hris-backend/pkg/response"

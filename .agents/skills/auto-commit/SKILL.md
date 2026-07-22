@@ -17,10 +17,10 @@ Before grouping and committing, run `make lint` to verify code quality. If the l
 
 ## 3. Analyze & Group Files
 1. Run `git status` and `git diff` to understand what was changed.
-2. Group the modified/untracked files by their bounded context or domain. For example:
-   - `internal/domain/auth/...` + `docs/api/swagger/auth.yaml` -> **Auth Module**
-   - `internal/domain/organization/...` -> **Organization Module**
-   - `pkg/validator/...` + `cmd/api/...` -> **Core/Infra Module**
+2. Group the modified/untracked files by their bounded context or domain. Karena layout domain-first, semua file satu context ada di bawah satu folder. For example:
+   - `internal/auth/...` + `docs/api/swagger/auth.yaml` -> **Auth Module**
+   - `internal/organization/...` -> **Organization Module**
+   - `internal/shared/...` + `pkg/...` + `cmd/api/...` -> **Core/Infra Module**
 
 ## 4. Formulate Atomic Commits
 For each module group, formulate a commit message adhering to Conventional Commits format:
@@ -56,11 +56,11 @@ feat(auth): implement request validation
 3. **Eksekusi:** Setelah user bilang "Ya", eksekusi commit secara berurutan.
 ```bash
 # Group 1: Auth
-git add internal/interfaces/http/auth/handler.go docs/api/swagger/auth.yaml docs/api/bruno/Auth/Login.bru
+git add internal/auth/transport/http/handler.go docs/api/swagger/auth.yaml docs/api/bruno/Auth/Login.bru
 git commit -m "feat(auth): implement request validation" -m "- Add validate tags to LoginRequest DTO" -m "- Implement ValidateStruct in Login handler" -m "- Document 422 responses in Swagger and Bruno"
 
 # Group 2: Organization
-git add internal/interfaces/http/organization/handler.go
+git add internal/organization/transport/http/handler.go
 git commit -m "feat(organization): add organization endpoints" -m "- Implement CRUD operations for organization"
 ```
 

@@ -25,13 +25,13 @@ When a user asks to create an RFC, Technical Spec, or Implementation Plan based 
 Every Technical Spec/RFC MUST contain the following core sections:
 
 ### 2.1. Overview & PRD Reference
-Briefly state what is being engineered and provide a direct link to the relevant PRD in `docs/requirement/`. This ensures traceability.
+Briefly state what is being engineered and provide a direct link to the relevant PRD in `docs/PRD/`. This ensures traceability.
 
 ### 2.2. System Architecture & Boundaries (DDD)
 Explain how this module fits into the Domain-Driven Design (DDD) architecture of the HRIS backend.
 - Define the **Aggregate Root**.
 - Define the **Value Objects** and child entities.
-- Outline the **Folder Structure** that will be generated (e.g., `internal/domain/[module]`, `internal/application/[module]`, `internal/infrastructure/repository/[module]`, dll).
+- Outline the **Folder Structure** that will be generated following the **domain-first** layout: one context folder `internal/[module]/` containing `domain/`, `application/`, `infrastructure/` (+ `infrastructure/models/`), and `transport/http/`.
 
 ### 2.3. Cross-Domain Dependencies (Bounded Context Integrations)
 Examine how this module communicates with other modules.
