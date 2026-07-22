@@ -4,7 +4,7 @@ Ada dua jenis dokumen yang wajib disimpan ke dalam repositori secara permanen:
 
 1. **Product Requirements Document (PRD):**
    - Jika user meminta rancangan fitur, requirement, atau skema bisnis (bukan teknis database murni), gunakan format PRD.
-   - **WAJIB** disimpan di folder `docs/requirement/` (contoh: `docs/requirement/employee.md`).
+   - **WAJIB** disimpan di folder `docs/PRD/` (contoh: `docs/PRD/employee.md`).
    - Format penulisan wajib mematuhi panduan dari skill `scaffold-prd`.
 2. **Dokumen Teknis & Arsitektur (Enterprise Tech Specs):**
    - Setiap rancangan arsitektur sistem, struktur database, atau *implementation plan* murni teknis, **WAJIB** disimpan di dalam sub-folder per domain di `docs/technical/<domain_name>/`.
