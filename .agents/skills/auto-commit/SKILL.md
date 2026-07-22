@@ -37,6 +37,8 @@ For each module group, formulate a commit message adhering to Conventional Commi
 
 **Scope:** The module name (e.g., `auth`, `organization`, `core`).
 
+> **Note (Cherry-Pick Safety):** Jika ada domain module yang bergantung pada perubahan di grup `core`/`infra` (misal domain baru butuh helper baru di `pkg/`), commit grup `core`/`infra` tersebut **HARUS** dieksekusi lebih dulu (urutan commit = urutan dependency). Ini menjamin commit domain bisa di-cherry-pick sendirian tanpa break, asalkan commit `core` prasyaratnya juga ikut di-pick.
+
 **Description (Changelog):**
 Include a bulleted list describing the changes.
 Example:
