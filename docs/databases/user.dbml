@@ -3,7 +3,7 @@
 
 Table users {
   id uuid [primary key, default: `gen_random_uuid()`]
-  email varchar(255) [unique, not null]
+  email varchar(255) [not null, note: 'Partial unique index WHERE deleted_at IS NULL (idx_users_email_active) — bukan unique constraint biasa. Email boleh dipakai ulang setelah akun lama soft-deleted. Lihat migrations/000001_create_users_table.up.sql.']
   password varchar(255) [not null]
   status varchar(50) [not null, default: 'active', note: 'active, inactive, suspended']
   created_at timestamp [not null, default: `now()`]

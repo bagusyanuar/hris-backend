@@ -38,5 +38,5 @@ HRIS Backend adalah sistem Human Resource Information System yang dirancang untu
 ---
 
 ## Referensi Lain
-- Skills: [`skills/`](skills/) — auto-commit, api-validation, go-best-practices, scaffold-prd, scaffold-rfc, scaffold-domain, scaffold-api-docs.
+- Skills: [`skills/`](skills/) — auto-commit, api-validation, go-best-practices, scaffold-prd, scaffold-rfc, scaffold-domain, scaffold-api-docs, scaffold-dbml.
 - Workflows / Slash Commands: [`workflows/`](workflows/) — execute-domain, git-commit, scaffold-docs.
