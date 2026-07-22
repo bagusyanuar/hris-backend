@@ -2,7 +2,7 @@
 
 ## 1. Overview & PRD Reference
 This document serves as the architectural blueprint for the Employee module, translating business requirements into engineering specifications.
-**PRD Reference:** [employee.md](../../requirement/employee.md)
+**PRD Reference:** [employee.md](../../PRD/employee.md)
 
 ## 2. System Architecture & Boundaries (DDD)
 The Employee module is a Core Domain in the HRIS backend.
