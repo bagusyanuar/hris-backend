@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/bagusyanuar/hris-backend/internal/domain/auth"
-	"github.com/bagusyanuar/hris-backend/internal/domain/user"
+	user "github.com/bagusyanuar/hris-backend/internal/user/domain"
 	"golang.org/x/crypto/bcrypt"
 )
 

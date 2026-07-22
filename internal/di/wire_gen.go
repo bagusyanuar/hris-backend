@@ -15,6 +15,7 @@ import (
 	auth3 "github.com/bagusyanuar/hris-backend/internal/interfaces/http/auth"
 	employee2 "github.com/bagusyanuar/hris-backend/internal/interfaces/http/employee"
 	organization2 "github.com/bagusyanuar/hris-backend/internal/interfaces/http/organization"
+	"github.com/bagusyanuar/hris-backend/internal/user/infrastructure"
 	"github.com/google/wire"
 	"gorm.io/gorm"
 )
@@ -22,8 +23,8 @@ import (
 // Injectors from wire.go:
 
 func InitializeAPI(db *gorm.DB, tokenGen auth.TokenGenerator) (*APIHandlers, error) {
-	userRepository := repository.NewUserRepository(db)
-	service := auth2.NewService(userRepository, tokenGen)
+	domainRepository := infrastructure.NewUserRepository(db)
+	service := auth2.NewService(domainRepository, tokenGen)
 	handler := auth3.NewHandler(service)
 	organizationRepository := repository.NewOrganizationRepository(db)
 	organizationService := organization.NewService(organizationRepository)
@@ -41,7 +42,7 @@ func InitializeAPI(db *gorm.DB, tokenGen auth.TokenGenerator) (*APIHandlers, err
 
 // wire.go:
 
-var RepositorySet = wire.NewSet(repository.NewUserRepository, repository.NewOrganizationRepository, repository.NewEmployeeRepository)
+var RepositorySet = wire.NewSet(infrastructure.NewUserRepository, repository.NewOrganizationRepository, repository.NewEmployeeRepository)
 
 var ServiceSet = wire.NewSet(auth2.NewService, organization.NewService, employee.NewService)
 

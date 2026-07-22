@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/bagusyanuar/hris-backend/internal/domain/user"
+	"github.com/bagusyanuar/hris-backend/internal/user/domain"
 	"github.com/google/uuid"
 )
 
@@ -23,12 +23,12 @@ func (UserModel) TableName() string {
 }
 
 // ToDomain mengonversi GORM model ke Domain Entity
-func (m *UserModel) ToDomain() (*user.User, error) {
-	return user.NewUser(m.ID.String(), m.Email, m.Password, m.Status)
+func (m *UserModel) ToDomain() (*domain.User, error) {
+	return domain.NewUser(m.ID.String(), m.Email, m.Password, m.Status)
 }
 
 // FromDomain mengonversi Domain Entity ke GORM model
-func FromDomain(u *user.User) (*UserModel, error) {
+func FromDomain(u *domain.User) (*UserModel, error) {
 	parsedID, err := uuid.Parse(u.ID())
 	if err != nil {
 		return nil, err

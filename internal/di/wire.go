@@ -18,10 +18,11 @@ import (
 	httpOrg "github.com/bagusyanuar/hris-backend/internal/interfaces/http/organization"
 
 	domainAuth "github.com/bagusyanuar/hris-backend/internal/domain/auth"
+	userInfra "github.com/bagusyanuar/hris-backend/internal/user/infrastructure"
 )
 
 var RepositorySet = wire.NewSet(
-	repository.NewUserRepository,
+	userInfra.NewUserRepository,
 	repository.NewOrganizationRepository,
 	repository.NewEmployeeRepository,
 )

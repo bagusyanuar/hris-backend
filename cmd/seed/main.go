@@ -6,7 +6,7 @@ import (
 
 	"github.com/bagusyanuar/hris-backend/internal/infrastructure/config"
 	"github.com/bagusyanuar/hris-backend/internal/infrastructure/database"
-	"github.com/bagusyanuar/hris-backend/internal/infrastructure/repository/models"
+	"github.com/bagusyanuar/hris-backend/internal/user/infrastructure/models"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
