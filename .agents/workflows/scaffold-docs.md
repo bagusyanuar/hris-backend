@@ -12,7 +12,7 @@ This workflow ensures that every time a new domain/module is requested, the AI f
 
 ## Step 2: Generate Product Requirements Document (PRD)
 1. Read and apply the instructions from the `scaffold-prd` skill.
-2. Create the PRD document and save it exactly at `docs/requirement/<domain_name>.md`.
+2. Create the PRD document and save it exactly at `docs/PRD/<domain_name>.md`.
 3. Inform the user that the PRD has been generated.
 4. STOP and ask the user to review the PRD. You MUST NOT proceed to generate technical documents until the user explicitly approves the PRD.
 
