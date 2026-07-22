@@ -9,10 +9,13 @@ This workflow automates the translation of approved Technical Specifications and
 ## Step 1: Initialization & Context Gathering
 1. If the user invokes this workflow without specifying a domain, ask them: "Domain/Modul apa yang mau kita koding eksekusinya hari ini?"
 2. STOP and wait for the user's response before proceeding.
-3. Read the following documents to gather full context before writing any code:
-   - `docs/technical/<domain>/tech-spec.md`
-   - `docs/technical/<domain>/user-stories.md`
-   - `docs/databases/<domain>.dbml`
+3. Read whatever context documents exist for the domain (technical docs are **tiered** — a Simpel module may have no `docs/technical/` folder at all; see `rules/project-docs.md`). Gather the fullest available context before writing any code, in this order of preference:
+   - `docs/PRD/<domain>.md` — **always read** (source of business rules & acceptance criteria).
+   - `docs/technical/<domain>/tech-spec.md` — if it exists (Sedang/Kompleks tier).
+   - `docs/technical/<domain>/user-stories.md` — if it exists (Kompleks tier).
+   - `docs/technical/<domain>/decision-log.md` — if it exists (constraints/ADR).
+   - `docs/databases/<domain>.dbml` — **always read** (mandatory for every tier; source of the physical schema).
+   > Below, "the spec" means the strongest source available: tech-spec if present, otherwise the PRD + DBML. For a Simpel module, generate directly from PRD + DBML.
 4. Read and deeply understand the coding guidelines in the `scaffold-domain` skill.
 
 ## Step 2: Layer-by-Layer Code Generation

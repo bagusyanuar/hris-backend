@@ -19,13 +19,17 @@ Fokus pada **WHAT** dan **WHY**. Berisi kebutuhan bisnis, aturan main, dan *scop
   5. *Technical & Architectural Constraints* (Aturan Engineering)
   6. *Dependencies* (Ketergantungan Modul)
 
-### 2. `docs/technical/` (Technical Specs & RFC)
-Fokus pada **HOW**. Berisi cetak biru arsitektur dari sudut pandang *Engineering*.
-Setiap modul/domain memiliki sub-foldernya sendiri (misal: `docs/technical/employee/`) yang berisi pecahan dokumen:
-- `tech-spec.md` : *Request for Comments* (RFC) berisi rancangan arsitektur, API *contracts*, dan skema database (ERD).
-- `user-stories.md` : Alur logika sistem (menggunakan *Mermaid Sequence diagram*).
-- `decision-log.md` : Architecture Decision Records (ADR) untuk mencatat **mengapa** suatu keputusan teknis diambil dan riwayat perubahannya.
-- (Opsional) `data-dictionary.md`, `infrastructure.md`, `test-plan.md`.
+### 2. `docs/technical/` (Technical Specs & RFC) — **Bertingkat (Tiered)**
+Fokus pada **HOW**. Berisi cetak biru arsitektur dari sudut pandang *Engineering*. **Kelengkapannya menyesuaikan kompleksitas modul** — modul remeh tak perlu dipaksa punya dokumen teknis penuh (detail aturan di [rules/project-docs.md](../.agents/rules/project-docs.md)):
+- **Simpel** (CRUD/master data) → tak ada folder technical. Cukup PRD + DBML, kode boleh langsung di-scaffold.
+- **Sedang** (relasi/state/depend antar-modul) → `tech-spec.md` (arsitektur + kontrak API + ERD).
+- **Kompleks** (kalkulasi/state machine/integrasi eksternal) → set penuh:
+  - `tech-spec.md` : *Request for Comments* (RFC) berisi rancangan arsitektur, API *contracts*, dan skema database (ERD).
+  - `user-stories.md` : Alur logika sistem (menggunakan *Mermaid Sequence diagram*).
+  - `decision-log.md` : Architecture Decision Records (ADR) untuk mencatat **mengapa** suatu keputusan teknis diambil dan riwayat perubahannya.
+  - (Opsional) `data-dictionary.md`, `infrastructure.md`, `test-plan.md`.
+
+> `decision-log.md` (ADR) tetap dibuat begitu ada keputusan teknis non-trivial yang perlu direkam *kenapa*-nya, walau modul tergolong Sedang.
 
 ### 3. `docs/databases/` (Database Schema & DBML)
 Berisi rancangan struktur *database* fisik dalam format DBML (*Database Markup Language*).
