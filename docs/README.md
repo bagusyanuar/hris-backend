@@ -8,7 +8,7 @@ Selamat datang di pusat dokumentasi HRIS Backend. Repositori ini menerapkan kons
 
 Dokumentasi dipisahkan secara tegas menjadi tiga pilar utama:
 
-### 1. `docs/requirement/` (Product Requirements Document - PRD)
+### 1. `docs/PRD/` (Product Requirements Document - PRD)
 Fokus pada **WHAT** dan **WHY**. Berisi kebutuhan bisnis, aturan main, dan *scope* dari sudut pandang *Product Management*.
 - **Tujuan:** Menjadi *Single Source of Truth* bagi tim Bisnis, QA, Frontend, dan Backend.
 - **Aturan Pembuatan:** Setiap PRD **wajib** mengikuti pedoman **6 Pilar Enterprise**:
@@ -45,7 +45,7 @@ Contoh penggunaan dengan *prompt* langsung:
 > `/scaffold-docs Tolong buatkan dokumentasi untuk modul Attendance (Absensi). Fitur utamanya adalah clock-in/out pakai koordinat GPS.`
 
 **Alur Kerja AI (`/scaffold-docs`):**
-1. **Fase Bisnis:** AI akan membuatkan **PRD** di folder `docs/requirement/` dan berhenti sementara untuk meminta persetujuan (*approval*) Anda.
+1. **Fase Bisnis:** AI akan membuatkan **PRD** di folder `docs/PRD/` dan berhenti sementara untuk meminta persetujuan (*approval*) Anda.
 2. **Fase Engineering:** Setelah PRD di-klik *approve*, AI akan otomatis menerjemahkan logika bisnis tersebut menjadi file-file arsitektur teknis lengkap di dalam `docs/technical/<domain>/`.
 
 ---
