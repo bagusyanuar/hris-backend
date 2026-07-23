@@ -36,6 +36,7 @@ HRIS Backend adalah sistem Human Resource Information System yang dirancang untu
 7. [Konvensi Persistensi (Repository, Transaction, Data Integrity)](rules/persistence-convention.md) — larangan `db.Save()` untuk upsert, transaction ownership di application layer, kontrak not-found sentinel error, larangan bocor error internal ke client.
 8. [Konvensi Logging (Zap)](rules/logging-convention.md) — single source `pkg/logger`, context propagation via `logger.FromContext`, log sekali di boundary (bukan tiap layer), structured fields.
 9. [Konvensi Scoping Multi-Entity (Company & Branch)](rules/scoping-convention.md) — aksioma multi-PT/multi-cabang, klasifikasi kelas scope entity, kolom `company_id`/`branch_id` non-nullable, filter scope di query boundary via `scope.FromContext`, enforcement bertahap (staged sampai Organization & RBAC landing).
+10. [Konvensi Pagination, Sort & Order](rules/pagination-convention.md) — `pkg/pagination` wajib untuk semua endpoint List/FindAll, pembagian tanggung jawab per layer (domain tetap primitif, adapter wajib whitelist `SortMap`/`OrderClause` untuk cegah SQL injection lewat `Order()`).
 
 ---
 

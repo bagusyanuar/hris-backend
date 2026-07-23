@@ -7,7 +7,7 @@ description: Scaffold a new domain module/bounded context following the HRIS DDD
 
 Gunakan skill ini ketika user meminta untuk membuat modul domain baru (misalnya: `attendance`, `payroll`, `leave`).
 
-Project ini memakai layout **domain-first**: satu bounded context = **satu folder utuh** di `internal/<domain_name>/` berisi keempat layer di dalamnya. Patuhi [architecture.md](../../rules/architecture.md), [uuid-generation.md](../../rules/uuid-generation.md), [persistence-convention.md](../../rules/persistence-convention.md), dan [scoping-convention.md](../../rules/scoping-convention.md).
+Project ini memakai layout **domain-first**: satu bounded context = **satu folder utuh** di `internal/<domain_name>/` berisi keempat layer di dalamnya. Patuhi [architecture.md](../../rules/architecture.md), [uuid-generation.md](../../rules/uuid-generation.md), [persistence-convention.md](../../rules/persistence-convention.md), [scoping-convention.md](../../rules/scoping-convention.md), dan [pagination-convention.md](../../rules/pagination-convention.md) (kalau modul punya endpoint List/FindAll).
 
 ## Step 0 — Klasifikasi Scope Entity (WAJIB, SEBELUM nulis kode)
 
@@ -54,15 +54,15 @@ internal/<domain_name>/
 
 1. **Domain Layer** (`internal/<domain_name>/domain/`, package `domain`):
    - `entity.go`: entity utama, value objects, constructor `New<EntityName>`, validasi bisnis. Biasakan ada `CreatedAt`, `UpdatedAt`, `IsActive`. **UUID digenerate DI DALAM constructor** — constructor TIDAK menerima parameter `id` (single source of generation, lihat uuid-generation.md).
-   - `repository.go`: interface `Repository` dengan `context.Context`. Not-found dikontrakkan sebagai sentinel error, BUKAN `(nil, nil)`.
+   - `repository.go`: interface `Repository` dengan `context.Context`. Not-found dikontrakkan sebagai sentinel error, BUKAN `(nil, nil)`. Kalau ada `FindAll`/List, signature **WAJIB** primitif `page, limit int, sort, order string` — **JANGAN** import `pkg/pagination` di domain (lihat pagination-convention.md §1, domain harus tetap pure Go tanpa dependency GORM).
    - `service.go` (opsional): logika bisnis murni domain.
 
 2. **Application Layer** (`internal/<domain_name>/application/`, package `application`):
-   - `service.go`: application service koordinasi transaksi. **DILARANG generate UUID di sini** — serahkan ke domain constructor.
-   - `dto.go`: Request & Response DTOs. Untuk `Update...Request`, gunakan pointer (`*bool`, `*string`) agar bisa membedakan `null` dengan *zero value*.
+   - `service.go`: application service koordinasi transaksi. **DILARANG generate UUID di sini** — serahkan ke domain constructor. Untuk List: bungkus `page,limit,sort,order` jadi `pagination.Request{...}.Normalize()` sebelum diteruskan ke repo (pagination-convention.md §2).
+   - `dto.go`: Request & Response DTOs. Untuk `Update...Request`, gunakan pointer (`*bool`, `*string`) agar bisa membedakan `null` dengan *zero value*. `List...Response` pakai field `Meta pagination.Meta` — JANGAN bikin struct meta lokal duplikat.
 
 3. **Adapter Layer** (`internal/<domain_name>/adapter/`, package `adapter`):
-   - `postgres.go`: implementasi interface repository. **Insert pakai `Create()`, JANGAN `Save()`** (lihat persistence-convention.md §1). Not-found → map `gorm.ErrRecordNotFound` ke sentinel error domain.
+   - `postgres.go`: implementasi interface repository. **Insert pakai `Create()`, JANGAN `Save()`** (lihat persistence-convention.md §1). Not-found → map `gorm.ErrRecordNotFound` ke sentinel error domain. `FindAll` pakai `pagination.Query[T]` + **WAJIB** whitelist `pagination.SortMap`/`OrderClause` sebelum `.Order(...)` — jangan pernah teruskan `sort` mentah dari client ke GORM (SQL injection, pagination-convention.md §3).
    - `models/<domain_name>_model.go` (package `models`): Model GORM + mapper `ToDomain()` / `FromDomain()`. `ToDomain()` **merekonstruksi struct langsung** (tidak lewat constructor, agar tidak generate UUID baru).
 
 4. **Transport Layer** (`internal/<domain_name>/transport/http/`, package `http`):
@@ -135,6 +135,39 @@ type Repository interface {
 	FindAll(ctx context.Context) ([]*<EntityName>, error)           // wajib filter company_id dari scope.FromContext(ctx)
 	Update(ctx context.Context, item *<EntityName>) error
 	Delete(ctx context.Context, id string) error
+}
+```
+
+> **Kalau modul punya endpoint List yang perlu paginated** (mayoritas kasus — jangan `Find()` tanpa limit), ganti signature `FindAll` di atas jadi versi paginated berikut (pagination-convention.md §1 — tetap primitif, TANPA import `pkg/pagination` di domain):
+> ```go
+> FindAll(ctx context.Context, page, limit int, sort, order string) ([]*<EntityName>, int64, error)
+> ```
+
+### `internal/<domain_name>/application/dto.go` (List Response, kalau ada pagination)
+```go
+package application
+
+import "github.com/bagusyanuar/hris-backend/pkg/pagination"
+
+type <EntityName>ListResponse struct {
+	Items []<EntityName>Response `json:"items"`
+	Meta  pagination.Meta        `json:"meta"` // JANGAN bikin struct meta lokal duplikat
+}
+```
+
+### `internal/<domain_name>/application/service.go` (List use case, kalau ada pagination)
+```go
+func (s *Service) List<EntityName>s(ctx context.Context, page, limit int, sort, order string) (*<EntityName>ListResponse, error) {
+	req := pagination.Request{Page: page, Limit: limit, Sort: sort, Order: order}.Normalize()
+	items, total, err := s.repo.FindAll(ctx, req.Page, req.Limit, req.Sort, req.Order)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]<EntityName>Response, 0, len(items))
+	for _, it := range items {
+		res = append(res, to<EntityName>Response(it))
+	}
+	return &<EntityName>ListResponse{Items: res, Meta: pagination.NewMeta(req, total)}, nil
 }
 ```
 
@@ -252,6 +285,28 @@ func (r *<EntityName>Repository) Delete(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Delete(&models.<EntityName>Model{}, "id = ?", id).Error
 }
 ```
+
+> **Versi paginated** (kalau `FindAll` di domain pakai signature `page, limit int, sort, order string`, pagination-convention.md §3) — ganti method `FindAll` di atas jadi ini. WAJIB whitelist `SortMap`, JANGAN pass `sort` mentah ke `.Order()`:
+> ```go
+> var <domainName>SortMap = pagination.SortMap{
+> 	"name":       "name",
+> 	"created_at": "created_at",
+> }
+>
+> func (r *<EntityName>Repository) FindAll(ctx context.Context, page, limit int, sort, order string) ([]*domain.<EntityName>, int64, error) {
+> 	req := pagination.Request{Page: page, Limit: limit, Sort: sort, Order: order}
+> 	db := r.db.WithContext(ctx).Order(req.OrderClause(<domainName>SortMap, "created_at"))
+> 	rows, meta, err := pagination.Query[models.<EntityName>Model](db, req)
+> 	if err != nil {
+> 		return nil, 0, err
+> 	}
+> 	result := make([]*domain.<EntityName>, 0, len(rows))
+> 	for i := range rows {
+> 		result = append(result, rows[i].ToDomain())
+> 	}
+> 	return result, meta.Total, nil
+> }
+> ```
 
 ### `internal/<domain_name>/transport/http/handler.go`
 ```go
