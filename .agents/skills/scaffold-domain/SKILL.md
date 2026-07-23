@@ -7,7 +7,23 @@ description: Scaffold a new domain module/bounded context following the HRIS DDD
 
 Gunakan skill ini ketika user meminta untuk membuat modul domain baru (misalnya: `attendance`, `payroll`, `leave`).
 
-Project ini memakai layout **domain-first**: satu bounded context = **satu folder utuh** di `internal/<domain_name>/` berisi keempat layer di dalamnya. Patuhi [architecture.md](../../rules/architecture.md), [uuid-generation.md](../../rules/uuid-generation.md), dan [persistence-convention.md](../../rules/persistence-convention.md).
+Project ini memakai layout **domain-first**: satu bounded context = **satu folder utuh** di `internal/<domain_name>/` berisi keempat layer di dalamnya. Patuhi [architecture.md](../../rules/architecture.md), [uuid-generation.md](../../rules/uuid-generation.md), [persistence-convention.md](../../rules/persistence-convention.md), dan [scoping-convention.md](../../rules/scoping-convention.md).
+
+## Step 0 — Klasifikasi Scope Entity (WAJIB, SEBELUM nulis kode)
+
+Sebelum generate layer manapun, **klasifikasikan tiap entity** sesuai [scoping-convention.md](../../rules/scoping-convention.md) §1 dan tentukan kolom scope-nya:
+
+- **Company-owned** (default modul operasional) → entity/model/DTO/DBML bawa `CompanyID string` (`company_id` NOT NULL, FK `companies`).
+- **Company + Location bound** (lokasi-spesifik, mis. Attendance) → tambah `BranchID string` (`branch_id` NOT NULL, FK `branches`).
+- **Global master** (jarang, data identik lintas PT) → tanpa kolom scope, TAPI wajib justifikasi eksplisit.
+
+Konsekuensi yang WAJIB ikut begitu entity company-owned:
+1. Field `CompanyID` (+ `BranchID`) ada di **domain entity**, **GORM model**, **DTO**, dan **DBML**.
+2. Constructor `New<Entity>` **menerima** `companyID` (dan `branchID` bila perlu) sebagai parameter wajib + validasi non-empty.
+3. Repository `FindXxx`/`ListXxx` **scope-aware**: baca `scope.FromContext(ctx)` dan inject filter `WHERE company_id IN (...)`. JANGAN query baca tanpa filter scope.
+4. Write memvalidasi `branch_id` se-`company_id` (mismatch → sentinel `ErrBranchCompanyMismatch`).
+
+> **Staged (per scoping-convention.md §4):** modul Organization (`companies`/`branches`) & RBAC belum ada. Tetap tulis kolom + signature scope-aware sekarang; FK fisik & pengisian `scope.FromContext` nyusul saat modul itu landing. Jangan tunda kolomnya.
 
 ## Prosedur Pembuatan Modul
 
@@ -78,6 +94,7 @@ var (
 
 type <EntityName> struct {
 	ID        string
+	CompanyID string // scope: kelas Company-owned (scoping-convention.md §1). Tambah BranchID kalau lokasi-spesifik.
 	Name      string
 	IsActive  bool
 	CreatedAt time.Time
@@ -86,13 +103,15 @@ type <EntityName> struct {
 
 // New<EntityName> adalah satu-satunya tempat generate UUID (single source).
 // Constructor TIDAK menerima id — id selalu digenerate di sini.
-func New<EntityName>(name string) (*<EntityName>, error) {
-	if name == "" {
+// companyID WAJIB (scope) — entity company-owned tak boleh lahir tanpa scope.
+func New<EntityName>(companyID, name string) (*<EntityName>, error) {
+	if companyID == "" || name == "" {
 		return nil, ErrInvalidInput
 	}
 	now := time.Now()
 	return &<EntityName>{
 		ID:        uuid.NewString(),
+		CompanyID: companyID,
 		Name:      name,
 		IsActive:  true,
 		CreatedAt: now,
@@ -107,10 +126,13 @@ package domain
 
 import "context"
 
+// Semua FindXxx/FindAll scope-aware: baca scope.FromContext(ctx) lalu inject
+// filter WHERE company_id IN (...) (scoping-convention.md §3). Signature terima ctx —
+// scope diambil dari context (diisi RBAC middleware), bukan parameter eksplisit tiap call.
 type Repository interface {
 	Create(ctx context.Context, item *<EntityName>) error
-	FindByID(ctx context.Context, id string) (*<EntityName>, error) // not-found => Err<EntityName>NotFound
-	FindAll(ctx context.Context) ([]*<EntityName>, error)
+	FindByID(ctx context.Context, id string) (*<EntityName>, error) // not-found => Err<EntityName>NotFound; wajib dalam scope ctx
+	FindAll(ctx context.Context) ([]*<EntityName>, error)           // wajib filter company_id dari scope.FromContext(ctx)
 	Update(ctx context.Context, item *<EntityName>) error
 	Delete(ctx context.Context, id string) error
 }

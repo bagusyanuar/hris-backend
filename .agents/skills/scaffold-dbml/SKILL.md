@@ -23,8 +23,16 @@ DBML is **MANDATORY for every module**, regardless of tier (Simpel/Sedang/Komple
 ## 4. Writing the DBML
 - Reflect exact column types/constraints as they are (or will be) in Postgres: `uuid`, `varchar(n)`, `not null`, `default`.
 - **DBML cannot express every real-world SQL constraint** (partial unique indexes, `WHERE`-conditioned constraints, `CHECK` enums, composite uniqueness). When the real/planned constraint is more specific than what DBML's shorthand (`unique`, `pk`) can say, **do not use the flat shorthand alone** — annotate with `note:` explaining the actual rule and point to the migration file. (Example: `docs/databases/user.dbml` — `email` uses a partial unique index `WHERE deleted_at IS NULL`, not a plain unique constraint, because emails are reusable after soft-delete.)
-- Add `Ref:` blocks for foreign keys to other domains' tables (e.g., `organization`'s `job_positions.department_id` → `departments.id`).
+- Add `Ref:` blocks for foreign keys to other domains' tables (e.g., `workforce_structure`'s `job_positions.department_id` → `departments.id`).
 - Cross-check field name casing against [coding-convention.md](../../rules/coding-convention.md) §6 (acronym consistency) so DB column, GORM model, and Domain Entity don't drift (e.g. `ktp_number` vs `KtpNumber`, not mixed casing).
+
+### 4a. Kolom Scope Multi-Entity (WAJIB — [scoping-convention.md](../../rules/scoping-convention.md))
+Setiap tabel entity operasional WAJIB bawa kolom scope sesuai kelasnya (scoping-convention.md §1):
+- **Company-owned** (default) → `company_id uuid [not null]` + `Ref: <table>.company_id > companies.id`.
+- **Company + Location** → tambah `branch_id uuid [not null]` + `Ref: <table>.branch_id > branches.id`.
+- **Index wajib** di kolom scope: `Indexes { company_id }` (dan `(company_id, branch_id)` untuk entity dua-dimensi) — semua query difilter lewat kolom ini.
+- **Integritas silang** `branch_id` se-`company_id` tak bisa diekspresikan DBML polos → kasih `note:` yang rujuk aturan + migration.
+- **Staged (§4 scoping-convention):** tabel `companies`/`branches` mungkin belum ada saat DBML modul lain ditulis. Tetap **deklarasikan** `Ref:`-nya (dokumentasi kontrak); catat di akhir bahwa migrasi FK harus diurutkan setelah migrasi Organization.
 
 ## 5. What This Skill Does NOT Do
 - **Does not write or run SQL migrations.** DBML is documentation/spec only. Creating the actual `migrations/*.up.sql`/`*.down.sql` pair is a separate, explicit step via `make migrate-create` — only do it if the user asks for the migration itself, not just the schema doc.
@@ -37,3 +45,4 @@ DBML is **MANDATORY for every module**, regardless of tier (Simpel/Sedang/Komple
 - [ ] Constraint yang gak bisa direpresentasikan shorthand DBML (partial index, CHECK enum, composite unique) diberi `note:`, bukan diam-diam disederhanakan jadi `[unique]` polos.
 - [ ] Kalau ada migration existing, DBML match persis — bukan versi idealis yang beda dari real schema.
 - [ ] Foreign key ke domain lain pakai `Ref:`.
+- [ ] Kolom scope (`company_id`/`branch_id`) ada sesuai kelas entity + ber-index + `Ref:` ke `companies`/`branches` ([scoping-convention.md](../../rules/scoping-convention.md) §1–§2). Kalau "Global master" tanpa scope → ada justifikasi eksplisit.

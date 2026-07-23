@@ -58,6 +58,7 @@ The strict definition of "Done" to prevent debates between QA and Engineering. U
 Define the engineering rules for this module.
 - **Backend:** DDD isolation rules, strict typing, or soft-delete mandates.
 - **Frontend:** Form structure (e.g., Wizard/Multi-step), UI constraints, data masking, or client-side validations.
+- **Multi-Entity Scoping (MANDATORY):** klasifikasikan tiap entity modul ini sesuai [scoping-convention.md](../../rules/scoping-convention.md) §1 dan nyatakan eksplisit di PRD — **Company-owned** (`company_id`, default), **Company+Location** (`company_id`+`branch_id`), atau **Global master** (tanpa scope, wajib justifikasi). Nyatakan juga siapa yang enforce filter (RBAC via `scope.FromContext`). Kolom scope harus muncul di §3 Data Schema entity yang bersangkutan. Jangan bikin PRD entity operasional tanpa keputusan scope-nya.
 
 ### 2.6. Dependencies (Ketergantungan)
 Make coupling explicit and versioned. Two directions are MANDATORY:
