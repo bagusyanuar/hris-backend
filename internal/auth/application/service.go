@@ -1,10 +1,10 @@
-package auth
+package application
 
 import (
 	"context"
 	"errors"
 
-	"github.com/bagusyanuar/hris-backend/internal/domain/auth"
+	"github.com/bagusyanuar/hris-backend/internal/auth/domain"
 	user "github.com/bagusyanuar/hris-backend/internal/user/domain"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -16,17 +16,17 @@ var (
 
 type Service struct {
 	userRepo       user.Repository
-	tokenGenerator auth.TokenGenerator
+	tokenGenerator domain.TokenGenerator
 }
 
-func NewService(userRepo user.Repository, tokenGenerator auth.TokenGenerator) *Service {
+func NewService(userRepo user.Repository, tokenGenerator domain.TokenGenerator) *Service {
 	return &Service{
 		userRepo:       userRepo,
 		tokenGenerator: tokenGenerator,
 	}
 }
 
-func (s *Service) Login(ctx context.Context, email, password string) (*auth.TokenPair, error) {
+func (s *Service) Login(ctx context.Context, email, password string) (*domain.TokenPair, error) {
 	u, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, user.ErrUserNotFound) {
@@ -43,7 +43,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (*auth.Toke
 	return s.tokenGenerator.GenerateTokenPair(u.ID(), "employee")
 }
 
-func (s *Service) Refresh(ctx context.Context, refreshToken string) (*auth.TokenPair, error) {
+func (s *Service) Refresh(ctx context.Context, refreshToken string) (*domain.TokenPair, error) {
 	claims, err := s.tokenGenerator.ValidateToken(refreshToken, "refresh")
 	if err != nil {
 		return nil, ErrInvalidToken

@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
+	authInfra "github.com/bagusyanuar/hris-backend/internal/auth/infrastructure"
 	"github.com/bagusyanuar/hris-backend/internal/di"
-	"github.com/bagusyanuar/hris-backend/internal/infrastructure/config"
-	"github.com/bagusyanuar/hris-backend/internal/infrastructure/security"
-	"github.com/bagusyanuar/hris-backend/internal/interfaces/http/middleware"
+	"github.com/bagusyanuar/hris-backend/internal/shared/config"
+	"github.com/bagusyanuar/hris-backend/internal/shared/middleware"
 
 	"github.com/gofiber/fiber/v3"
 	"gorm.io/gorm"
@@ -64,7 +64,7 @@ func (s *Server) setupRoutes() {
 	})
 
 	// Initialize Shared Dependencies
-	tokenGenerator := security.NewJWTService(s.cfg.JwtSecret, s.cfg.JwtExpiryHour, s.cfg.JwtRefreshExpiryHour)
+	tokenGenerator := authInfra.NewJWTService(s.cfg.JwtSecret, s.cfg.JwtExpiryHour, s.cfg.JwtRefreshExpiryHour)
 
 	// Setup API Routes
 	api := s.app.Group("/api/v1")

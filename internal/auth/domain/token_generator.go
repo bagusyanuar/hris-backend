@@ -1,4 +1,4 @@
-package auth
+package domain
 
 type TokenPair struct {
 	AccessToken  string

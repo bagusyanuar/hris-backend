@@ -3,11 +3,11 @@ package middleware
 import (
 	"strings"
 
-	"github.com/bagusyanuar/hris-backend/internal/domain/auth"
+	authDomain "github.com/bagusyanuar/hris-backend/internal/auth/domain"
 	"github.com/gofiber/fiber/v3"
 )
 
-func AuthProtected(tokenGenerator auth.TokenGenerator) fiber.Handler {
+func AuthProtected(tokenGenerator authDomain.TokenGenerator) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		authHeader := c.Get("Authorization")
 		if authHeader == "" {

@@ -1,10 +1,10 @@
-package security
+package infrastructure
 
 import (
 	"errors"
 	"time"
 
-	"github.com/bagusyanuar/hris-backend/internal/domain/auth"
+	"github.com/bagusyanuar/hris-backend/internal/auth/domain"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -21,7 +21,7 @@ type jwtService struct {
 	refreshExpiry time.Duration
 }
 
-func NewJWTService(secretKey string, accessExpiryHours int, refreshExpiryHours int) auth.TokenGenerator {
+func NewJWTService(secretKey string, accessExpiryHours int, refreshExpiryHours int) domain.TokenGenerator {
 	if accessExpiryHours <= 0 {
 		accessExpiryHours = 1
 	}
@@ -36,7 +36,7 @@ func NewJWTService(secretKey string, accessExpiryHours int, refreshExpiryHours i
 	}
 }
 
-func (s *jwtService) GenerateTokenPair(userID string, role string) (*auth.TokenPair, error) {
+func (s *jwtService) GenerateTokenPair(userID string, role string) (*domain.TokenPair, error) {
 	now := time.Now()
 
 	// 1. Generate Access Token
@@ -71,14 +71,14 @@ func (s *jwtService) GenerateTokenPair(userID string, role string) (*auth.TokenP
 		return nil, err
 	}
 
-	return &auth.TokenPair{
+	return &domain.TokenPair{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    int(s.accessExpiry.Seconds()),
 	}, nil
 }
 
-func (s *jwtService) ValidateToken(tokenString string, expectedType string) (*auth.TokenClaims, error) {
+func (s *jwtService) ValidateToken(tokenString string, expectedType string) (*domain.TokenClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &jwtClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
@@ -94,7 +94,7 @@ func (s *jwtService) ValidateToken(tokenString string, expectedType string) (*au
 		if claims.Type != expectedType {
 			return nil, errors.New("invalid token type")
 		}
-		return &auth.TokenClaims{
+		return &domain.TokenClaims{
 			UserID: claims.UserID,
 			Role:   claims.Role,
 			Type:   claims.Type,

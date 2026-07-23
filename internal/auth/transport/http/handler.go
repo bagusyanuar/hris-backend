@@ -1,9 +1,9 @@
-package auth
+package http
 
 import (
 	"time"
 
-	authApp "github.com/bagusyanuar/hris-backend/internal/application/auth"
+	"github.com/bagusyanuar/hris-backend/internal/auth/application"
 	"github.com/bagusyanuar/hris-backend/pkg/response"
 	"github.com/bagusyanuar/hris-backend/pkg/validator"
 	"github.com/gofiber/fiber/v3"
@@ -15,10 +15,10 @@ type LoginRequest struct {
 }
 
 type Handler struct {
-	service *authApp.Service
+	service *application.Service
 }
 
-func NewHandler(service *authApp.Service) *Handler {
+func NewHandler(service *application.Service) *Handler {
 	return &Handler{service: service}
 }
 
