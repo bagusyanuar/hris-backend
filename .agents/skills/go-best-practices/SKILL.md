@@ -31,3 +31,10 @@ This skill contains rules that MUST be followed when writing, refactoring, or re
 
 ## 6. Magic Numbers & Strings
 * **Use Constants:** Do not hardcode magic strings or numbers with business meaning (e.g., status `"ACTIVE"`, `"RESIGNED"`, error codes). Define them as constants (`const StatusActive = "ACTIVE"`) in the Domain Layer.
+
+## 7. Nil-Safety & Panic Prevention
+* **Nil Pointer Guard:** Before dereferencing a pointer that can be `nil` (result of a repository lookup, an optional field, a type assertion), check it explicitly. Never assume a `*Entity` returned from a function is non-nil just because `err == nil`.
+* **Slice/Map Bounds:** Never index a slice (`arr[0]`) or map result without checking length/existence first, especially on data coming from HTTP request bodies, query params, or external API responses.
+* **Type Assertions:** Always use the two-value form (`v, ok := x.(T)`) outside of tests. A single-value assertion (`v := x.(T)`) panics on mismatch and must not be used on untrusted input.
+* **Fiber Handlers Must Not Panic:** HTTP handlers are the outermost boundary — an unrecovered panic here kills the request (and, without a recover middleware, can crash the goroutine). Validate/parse request bodies via `pkg/validator` before touching fields, and guard against nil on anything fetched from `c.Locals(...)`.
+* **Division & Numeric Conversion:** Guard against division by zero and out-of-range numeric conversions (e.g., `int64` to `int32`) when the divisor or source value originates from user input or calculation (payroll, attendance).
