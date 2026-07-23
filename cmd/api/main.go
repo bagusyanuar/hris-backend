@@ -17,7 +17,7 @@ func main() {
 	// Initialize Database
 	db, err := database.InitDB(cfg)
 	if err != nil {
-		log.Printf("Warning: Failed to connect database: %v. Server will start but database queries may fail.", err)
+		log.Fatalf("Failed to connect database: %v", err)
 	}
 
 	// Initialize and setup the server
