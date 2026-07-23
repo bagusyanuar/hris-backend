@@ -1,25 +1,137 @@
 openapi: 3.0.0
 info:
   title: Organization API
-  version: 2.0.0
+  version: 2.1.2
   description: >
-    API untuk modul Organization scope 2.0.0 — Company (legal entity/PT) &
+    API untuk modul Organization scope 2.1.2 — Company (legal entity/PT) &
     Branch (cabang/lokasi). Lihat docs/PRD/organization.md. Endpoint
     Departments/JobTitles/JobPositions versi lama sudah tidak didokumentasikan
     di sini (dipindah scope-nya ke modul workforce-structure per PRD breaking
     change) — kode existing-nya (`internal/domain/organization`, dst) masih
     hidup untuk sementara tapi bukan bagian dari contract modul Organization
-    ini lagi.
+    ini lagi. v2.1.0: `GET /api/v1/companies` embed nested `branches` per
+    company + tambah query param `search` (match `legal_name` atau nama
+    branch). v2.1.1: response schema komponen (`CompanyResponse`,
+    `BranchResponse`) sekarang eksplisit tandai field `nullable` (`npwp`,
+    `bpjs_no`, `city`) vs field yang selalu ada meski zero-value (`branches`
+    selalu `[]`, tidak pernah `null`). v2.1.2: tiap operation tambah
+    `description` (purpose + side-effect non-obvious) + `operationId` unik,
+    buat FE/AI agent yang fetch dokumentasi langsung paham fungsi tiap
+    endpoint.
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+  schemas:
+    # Field WAJIB ada di tiap response (bukan berarti non-null — cek `nullable`
+    # per field). Field yang gak listed di `required` = bisa di-omit (tidak
+    # dipakai di API ini sekarang, semua field DTO selalu di-serialize).
+    CompanyResponse:
+      type: object
+      required: [id, code, legal_name, npwp, bpjs_no, is_active, branches, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        legal_name:
+          type: string
+        npwp:
+          type: string
+          nullable: true
+          description: Null kalau belum diisi saat create/update. TIDAK dijamin ada.
+        bpjs_no:
+          type: string
+          nullable: true
+          description: Null kalau belum diisi saat create/update. TIDAK dijamin ada.
+        is_active:
+          type: boolean
+        branches:
+          type: array
+          items:
+            $ref: '#/components/schemas/BranchResponse'
+          description: >
+            SELALU array (`[]` kalau company belum punya branch) — TIDAK
+            PERNAH `null`. Isinya full list branch milik company itu, tidak
+            difilter oleh query `search` (decision-log.md ADR-006).
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    BranchResponse:
+      type: object
+      required: [id, company_id, code, name, city, is_main, is_active, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        company_id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        city:
+          type: string
+          nullable: true
+          description: Null kalau belum diisi saat create/update. TIDAK dijamin ada.
+        is_main:
+          type: boolean
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    PaginationMeta:
+      type: object
+      required: [page, limit, total]
+      description: SELALU ada, tidak ada field yang nullable di sini.
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+    CompanyListResponse:
+      type: object
+      required: [items, meta]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompanyResponse'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    BranchListResponse:
+      type: object
+      required: [items, meta]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BranchResponse'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
 paths:
   /api/v1/companies:
     post:
       summary: Create Company
+      operationId: createCompany
+      description: >
+        Daftarkan legal entity (PT) baru ke dalam holding — root hierarki
+        untuk Branch, Employee, Payroll, dst. Dipakai sekali per PT saat
+        onboarding, bukan buat menambah cabang (lihat `POST
+        /companies/{companyId}/branches` buat itu).
       tags: [Company]
       security:
         - bearerAuth: []
@@ -54,6 +166,17 @@ paths:
           description: Company created successfully
           content:
             application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/CompanyResponse'
               example:
                 code: 201
                 status: success
@@ -65,6 +188,7 @@ paths:
                   npwp: "01.234.567.8-901.000"
                   bpjs_no: "JKN-0001"
                   is_active: true
+                  branches: []
                   created_at: "2026-07-23T13:00:00Z"
                   updated_at: "2026-07-23T13:00:00Z"
         '400':
@@ -107,6 +231,15 @@ paths:
                 errors: null
     get:
       summary: List Companies
+      operationId: listCompanies
+      description: >
+        Browse semua Company beserta nested `branches` per item — dipakai FE
+        buat overview struktur organisasi (company + footprint cabangnya)
+        dalam satu request, tanpa perlu N+1 call ke `GET
+        /companies/{companyId}/branches`. Dukung `search` gabungan
+        (`legal_name` ATAU nama branch). Beda dari `GET /companies/{id}`:
+        endpoint itu detail satu record dan TIDAK isi `branches` (selalu
+        `[]`) — pakai endpoint ini kalau butuh data branch-nya.
       tags: [Company]
       security:
         - bearerAuth: []
@@ -133,11 +266,32 @@ paths:
             type: string
             enum: [asc, desc]
             default: asc
+        - in: query
+          name: search
+          description: >
+            Opsional. Match `legal_name` ATAU nama salah satu branch milik
+            company itu (case-insensitive substring). Company yang lolos lewat
+            match branch tetap menampilkan SEMUA branch-nya di `branches`,
+            bukan cuma yang match (lihat decision-log.md ADR-006).
+          schema:
+            type: string
+            example: "Jakarta"
       responses:
         '200':
           description: Companies fetched successfully
           content:
             application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/CompanyListResponse'
               example:
                 code: 200
                 status: success
@@ -150,6 +304,16 @@ paths:
                       npwp: "01.234.567.8-901.000"
                       bpjs_no: "JKN-0001"
                       is_active: true
+                      branches:
+                        - id: "660e8400-e29b-41d4-a716-446655440001"
+                          company_id: "550e8400-e29b-41d4-a716-446655440000"
+                          code: "JKT"
+                          name: "Kantor Pusat Jakarta"
+                          city: "Jakarta"
+                          is_main: true
+                          is_active: true
+                          created_at: "2026-07-23T13:00:00Z"
+                          updated_at: "2026-07-23T13:00:00Z"
                       created_at: "2026-07-23T13:00:00Z"
                       updated_at: "2026-07-23T13:00:00Z"
                   meta:
@@ -162,6 +326,13 @@ paths:
   /api/v1/companies/{id}:
     get:
       summary: Get Company by ID
+      operationId: getCompanyById
+      description: >
+        Ambil detail satu Company by ID — dipakai buat form edit/detail view.
+        **Catatan penting:** field `branches` di response ini SELALU `[]`
+        (tidak diisi), beda dari `GET /companies` yang embed nested branches
+        penuh. Kalau butuh daftar branch company ini, pakai `GET
+        /companies/{companyId}/branches` atau `GET /companies` (list).
       tags: [Company]
       security:
         - bearerAuth: []
@@ -177,6 +348,17 @@ paths:
           description: Company fetched successfully
           content:
             application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/CompanyResponse'
               example:
                 code: 200
                 status: success
@@ -188,6 +370,7 @@ paths:
                   npwp: "01.234.567.8-901.000"
                   bpjs_no: "JKN-0001"
                   is_active: true
+                  branches: []
                   created_at: "2026-07-23T13:00:00Z"
                   updated_at: "2026-07-23T13:00:00Z"
         '404':
@@ -203,6 +386,11 @@ paths:
           description: Internal Server Error
     put:
       summary: Update Company
+      operationId: updateCompany
+      description: >
+        Update sebagian/seluruh field Company (partial update — field yang
+        gak dikirim gak berubah). Dipakai buat koreksi data legal (nama PT,
+        NPWP, BPJS) atau toggle `is_active`.
       tags: [Company]
       security:
         - bearerAuth: []
@@ -263,6 +451,13 @@ paths:
           description: Internal Server Error
     delete:
       summary: Soft Delete Company
+      operationId: deleteCompany
+      description: >
+        Soft-delete Company (set `deleted_at`, bukan hard delete) — dipakai
+        kalau PT sudah tidak beroperasi. **Side-effect non-obvious:** TIDAK
+        cascade-delete Branch anaknya (gap eksplisit di scope ini, lihat
+        decision-log.md ADR-003) — Branch anak tetap ada di DB meski
+        Company-nya sudah soft-deleted.
       tags: [Company]
       security:
         - bearerAuth: []
@@ -291,6 +486,14 @@ paths:
   /api/v1/companies/{companyId}/branches:
     post:
       summary: Create Branch under a Company
+      operationId: createBranch
+      description: >
+        Tambah Branch (cabang/lokasi fisik) baru di bawah Company tertentu.
+        **Side-effect non-obvious:** kalau `is_main=true`, main branch lama
+        di company yang sama otomatis DI-DEMOTE (`is_main` jadi `false`),
+        bukan ditolak — lihat decision-log.md ADR-004. Gak ada endpoint
+        terpisah buat "pindahkan kantor pusat", efeknya implicit dari
+        `is_main` di sini/`PUT /branches/{id}`.
       tags: [Branch]
       security:
         - bearerAuth: []
@@ -331,6 +534,17 @@ paths:
           description: Branch created successfully
           content:
             application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/BranchResponse'
               example:
                 code: 201
                 status: success
@@ -380,6 +594,12 @@ paths:
           description: Internal Server Error
     get:
       summary: List Branches under a Company
+      operationId: listBranchesByCompany
+      description: >
+        List Branch milik SATU Company tertentu, paginated. Pakai endpoint
+        ini (bukan nested `branches` di `GET /companies`) kalau company-nya
+        punya banyak cabang dan butuh pagination/sort — nested `branches` di
+        List Companies TIDAK di-paginate (asumsi jumlah kecil).
       tags: [Branch]
       security:
         - bearerAuth: []
@@ -417,6 +637,17 @@ paths:
           description: Branches fetched successfully
           content:
             application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/BranchListResponse'
               example:
                 code: 200
                 status: success
@@ -451,6 +682,11 @@ paths:
   /api/v1/branches/{id}:
     get:
       summary: Get Branch by ID
+      operationId: getBranchById
+      description: >
+        Ambil detail satu Branch by ID — dipakai buat form edit/detail view
+        satu cabang secara langsung (mis. dari halaman terpisah, bukan dari
+        list company/branch).
       tags: [Branch]
       security:
         - bearerAuth: []
@@ -466,6 +702,17 @@ paths:
           description: Branch fetched successfully
           content:
             application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/BranchResponse'
               example:
                 code: 200
                 status: success
@@ -493,6 +740,12 @@ paths:
           description: Internal Server Error
     put:
       summary: Update Branch
+      operationId: updateBranch
+      description: >
+        Update sebagian/seluruh field Branch (partial update). **Side-effect
+        non-obvious:** set `is_main=true` di sini juga trigger auto-demote
+        main branch lama di company yang sama, persis seperti `POST
+        .../branches` (decision-log.md ADR-004).
       tags: [Branch]
       security:
         - bearerAuth: []
@@ -551,6 +804,11 @@ paths:
           description: Internal Server Error
     delete:
       summary: Soft Delete Branch
+      operationId: deleteBranch
+      description: >
+        Soft-delete Branch (set `deleted_at`, bukan hard delete) — dipakai
+        kalau cabang sudah tutup/tidak beroperasi. Data historis (payroll,
+        attendance) yang terikat ke branch ini tetap utuh.
       tags: [Branch]
       security:
         - bearerAuth: []

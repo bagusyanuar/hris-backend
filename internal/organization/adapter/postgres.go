@@ -89,9 +89,16 @@ func (r *companyRepository) FindByID(ctx context.Context, id string) (*domain.Co
 	return model.ToDomain(), nil
 }
 
-func (r *companyRepository) FindAll(ctx context.Context, page, limit int, sort, order string) ([]*domain.Company, int64, error) {
+func (r *companyRepository) FindAll(ctx context.Context, page, limit int, sort, order, search string) ([]*domain.Company, int64, error) {
 	req := pagination.Request{Page: page, Limit: limit, Sort: sort, Order: order}
 	db := dbFromContext(ctx, r.db).Order(req.OrderClause(companySortMap, "created_at"))
+	if search != "" {
+		like := "%" + search + "%"
+		db = db.Where(
+			"legal_name ILIKE ? OR EXISTS (SELECT 1 FROM branches b WHERE b.company_id = companies.id AND b.name ILIKE ? AND b.deleted_at IS NULL)",
+			like, like,
+		)
+	}
 	rows, meta, err := pagination.Query[models.CompanyModel](db, req)
 	if err != nil {
 		return nil, 0, err
@@ -182,6 +189,26 @@ func (r *branchRepository) FindAllByCompany(ctx context.Context, companyID strin
 		result = append(result, rows[i].ToDomain())
 	}
 	return result, meta.Total, nil
+}
+
+// FindAllByCompanyIDs — batch WHERE company_id IN (...), TANPA pagination.
+// Dipakai buat embed nested branches di GET /companies (decision-log.md ADR-006).
+func (r *branchRepository) FindAllByCompanyIDs(ctx context.Context, companyIDs []string) ([]*domain.Branch, error) {
+	if len(companyIDs) == 0 {
+		return []*domain.Branch{}, nil
+	}
+	var rows []models.BranchModel
+	if err := dbFromContext(ctx, r.db).
+		Where("company_id IN ?", companyIDs).
+		Order("created_at").
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	result := make([]*domain.Branch, 0, len(rows))
+	for i := range rows {
+		result = append(result, rows[i].ToDomain())
+	}
+	return result, nil
 }
 
 // DemoteMainBranch — dipanggil di dalam TxManager.Do sebelum insert/update main baru

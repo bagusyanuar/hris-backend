@@ -1,7 +1,9 @@
-# Technical Specification: Organization Module (v2.0.0)
+# Technical Specification: Organization Module (v2.1.0)
 
 ## 1. Overview & PRD Reference
-Blueprint teknis modul `organization` scope 2.0.0 — **hanya Company (legal entity/PT) & Branch (lokasi/cabang)**. Department/Job Title/Job Position sudah pindah ke modul `workforce-structure` (di luar scope dokumen ini).
+Blueprint teknis modul `organization` scope 2.1.0 — **hanya Company (legal entity/PT) & Branch (lokasi/cabang)**. Department/Job Title/Job Position sudah pindah ke modul `workforce-structure` (di luar scope dokumen ini).
+
+**Perubahan v2.1.0:** `GET /api/v1/companies` sekarang embed nested `branches` per company (composition read-only, bukan perubahan aggregate boundary — lihat ADR-006) dan tambah query param `search` (match `legal_name` ATAU nama branch). Detail kontrak §6.1, repository sketch §7.4.
 
 **PRD Reference:** [organization.md](../../PRD/organization.md) (v2.0.0)
 **DBML Reference:** [organization.dbml](../../databases/organization.dbml)
@@ -109,8 +111,10 @@ Semua response pakai envelope `pkg/response` (`code`, `status`, `message`, `data
    - Response `201`: Company object.
    - Errors: `422` (validation), `409` (`ErrCompanyNPWPDuplicate`, hanya jika `npwp` diisi), `500`.
 
-2. **`GET /api/v1/companies`** — List Companies (pagination `page`, `limit`)
-   - Response `200`: array Company (`[]` jika kosong).
+2. **`GET /api/v1/companies`** — List Companies (pagination `page`, `limit`, sort `sort`/`order`, search `search`)
+   - Query param `search` (opsional): match `legal_name ILIKE %search%` **ATAU** ada branch milik company itu yang `name ILIKE %search%` (`EXISTS` subquery, bukan `JOIN` — company tidak boleh terduplikasi di result kalau lebih dari satu branch match).
+   - Response `200`: array Company, tiap item embed field `branches` (array Branch **lengkap milik company itu**, TIDAK di-filter oleh `search` — search cuma nentuin company mana yang lolos, bukan menyaring branch mana yang ditampilkan di dalamnya). `branches: []` (bukan `null`) kalau company belum punya branch.
+   - `branches` diambil via query batch terpisah (`WHERE company_id IN (...)` atas seluruh company hasil halaman ini), BUKAN GORM `Preload`/association — lihat ADR-006 untuk alasan.
 
 3. **`GET /api/v1/companies/{id}`** — Get Company by ID
    - Response `200` / `404` (`ErrCompanyNotFound`).
@@ -192,7 +196,8 @@ ErrBranchCompanyMismatch     // 422, dipakai fase mendatang saat entity lain val
 type CompanyRepository interface {
     Create(ctx context.Context, c *Company) error
     FindByID(ctx context.Context, id string) (*Company, error)   // ErrCompanyNotFound
-    FindAll(ctx context.Context, page, limit int) ([]*Company, int64, error)
+    // search: kosong = tanpa filter. Non-kosong = WHERE legal_name ILIKE %search% OR EXISTS(branch match) — lihat §6.1.
+    FindAll(ctx context.Context, page, limit int, sort, order, search string) ([]*Company, int64, error)
     Update(ctx context.Context, c *Company) error
     Delete(ctx context.Context, id string) error
 }
@@ -201,7 +206,10 @@ type BranchRepository interface {
     Create(ctx context.Context, b *Branch) error
     FindByID(ctx context.Context, id string) (*Branch, error)                     // ErrBranchNotFound
     FindByCompanyAndCode(ctx context.Context, companyID, code string) (*Branch, error) // ErrBranchNotFound kalau kosong
-    FindAllByCompany(ctx context.Context, companyID string, page, limit int) ([]*Branch, int64, error)
+    FindAllByCompany(ctx context.Context, companyID string, page, limit int, sort, order string) ([]*Branch, int64, error)
+    // FindAllByCompanyIDs — batch, TANPA pagination (dipakai untuk embed nested branches
+    // di GET /companies; jumlah branch per company diasumsikan kecil, lihat ADR-006).
+    FindAllByCompanyIDs(ctx context.Context, companyIDs []string) ([]*Branch, error)
     DemoteMainBranch(ctx context.Context, companyID string) error // UPDATE branches SET is_main=false WHERE company_id=? AND is_main=true
     Update(ctx context.Context, b *Branch) error
     Delete(ctx context.Context, id string) error
@@ -211,5 +219,7 @@ type BranchRepository interface {
 ## 8. Security, Performance & Technical Constraints
 - **Security (Authz):** Semua endpoint WAJIB JWT middleware. Write (`POST`/`PUT`/`DELETE`) dibatasi role `OWNER` / `GROUP_ADMIN` (PRD §3) — enforcement penuh nyusul setelah modul RBAC landing (Fase 4); untuk sekarang cukup `AuthProtected` (autentikasi, belum otorisasi granular per role).
 - **Performance:** `GET /companies/{id}/branches` WAJIB pagination (`page`, `limit`), default limit wajar (mis. 20) untuk cegah unbounded scan pada company dengan banyak cabang.
+- **Search (`ILIKE '%...%'`):** sengaja TANPA index `pg_trgm` — volume `companies`/`branches` kecil (puluhan-ratusan row per grup usaha, bukan tabel operasional volume-tinggi seperti Attendance). Full scan diterima di scope ini; revisit index trigram kalau data tumbuh signifikan.
+- **Nested branches di `GET /companies`:** batch query (`FindAllByCompanyIDs` dengan `WHERE company_id IN (...)`) atas seluruh company di halaman itu — 1 query tambahan per page, bukan N+1 per company. Lihat ADR-006.
 - **Scoping (staged, [scoping-convention.md](../../../.agents/rules/scoping-convention.md) §4):** Repository `FindAll`/`FindAllByCompany` sudah WAJIB baca `scope.FromContext(ctx)` sesuai kontrak, tapi karena RBAC belum landing, scope selalu kosong (owner-mode, tanpa filter tambahan) untuk saat ini. Jangan tunda menulis signature-nya.
 - **Data Masking:** Tidak ada field sensitif di scope 2.0.0 (npwp/bpjs_no bukan PII individu, aman ditampilkan ke role yang punya akses Company).

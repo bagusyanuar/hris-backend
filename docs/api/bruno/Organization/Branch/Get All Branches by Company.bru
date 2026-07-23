@@ -26,6 +26,11 @@ auth:bearer {
 }
 
 docs {
+  Tujuan: browse branch milik SATU company dengan pagination/sort — pakai
+  ini (bukan nested `branches` di Get All Companies) kalau company-nya
+  punya banyak cabang, karena nested branches di List Companies tidak
+  di-paginate.
+
   Mengambil daftar Branch milik satu Company (paginated).
 
   Required Properties:
@@ -66,6 +71,10 @@ docs {
     }
   }
   ```
+
+  Field nullable (bisa `null`): `city`.
+  Field yang SELALU ada meski zero-value: `is_main`, `is_active`,
+  `created_at`, `updated_at`.
 
   **404 Not Found** — company_id di path tidak dikenal
 

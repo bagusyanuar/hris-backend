@@ -47,6 +47,16 @@
   - Delete uses `deleted_at` (soft delete) — no hard `DELETE FROM`.
   - Deleting a company does **not** cascade-delete its branches in this scope (explicit gap, tracked in tech-spec.md §6.1).
 
+**US-06: Search & Browse Companies with Their Branches**
+- **As an** Owner / Group Admin
+- **I want to** see each company's branches inline while browsing the company list, and search by company legal name or branch name from one search box
+- **So that** I don't need a second screen/request just to know a PT's physical footprint, and can find a company even if I only remember one of its branch names.
+- **Acceptance Criteria:**
+  - `GET /api/v1/companies` response embeds `branches` (full list belonging to that company) per company item; `branches: []` (not `null`) when the company has none.
+  - `?search=` (optional) matches `legal_name` OR any of that company's branch `name` (case-insensitive substring).
+  - A company matched only via its branch name still shows its **full** branch list, not just the matching branch (see [decision-log.md](decision-log.md) ADR-006).
+  - No `search` param → behaves exactly like before (unfiltered, paginated).
+
 ---
 
 ## 2. Sequence Diagrams

@@ -26,14 +26,15 @@ type UpdateCompanyRequest struct {
 }
 
 type CompanyResponse struct {
-	ID        string    `json:"id"`
-	Code      string    `json:"code"`
-	LegalName string    `json:"legal_name"`
-	Npwp      *string   `json:"npwp"`
-	BpjsNo    *string   `json:"bpjs_no"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        string           `json:"id"`
+	Code      string           `json:"code"`
+	LegalName string           `json:"legal_name"`
+	Npwp      *string          `json:"npwp"`
+	BpjsNo    *string          `json:"bpjs_no"`
+	IsActive  bool             `json:"is_active"`
+	Branches  []BranchResponse `json:"branches"`
+	CreatedAt time.Time        `json:"created_at"`
+	UpdatedAt time.Time        `json:"updated_at"`
 }
 
 type CompanyListResponse struct {

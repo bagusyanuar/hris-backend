@@ -28,6 +28,9 @@ body:json {
 }
 
 docs {
+  Tujuan: tambah cabang/lokasi fisik baru di bawah PT tertentu, jadi basis
+  scope Attendance/Leave/Employee lokasi-spesifik nantinya.
+
   Membuat Branch baru di bawah Company tertentu.
 
   Required Properties:
@@ -61,6 +64,10 @@ docs {
     }
   }
   ```
+
+  Field nullable (bisa `null`): `city`.
+  Field yang SELALU ada meski zero-value: `is_main`, `is_active`,
+  `created_at`, `updated_at`.
 
   **400 Bad Request** — invalid JSON payload
 

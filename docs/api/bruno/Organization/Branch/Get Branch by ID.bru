@@ -19,6 +19,9 @@ auth:bearer {
 }
 
 docs {
+  Tujuan: ambil detail satu Branch langsung by ID buat form edit/detail
+  view, tanpa perlu lewat list company/branch.
+
   Mengambil detail Branch berdasarkan ID.
 
   Required Properties:
@@ -45,6 +48,10 @@ docs {
     }
   }
   ```
+
+  Field nullable (bisa `null`): `city`.
+  Field yang SELALU ada meski zero-value: `is_main`, `is_active`,
+  `created_at`, `updated_at`.
 
   **404 Not Found**
   ```json

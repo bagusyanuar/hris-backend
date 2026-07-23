@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/api/v1/companies?page=1&limit=20&sort=created_at&order=asc
+  url: {{baseUrl}}/api/v1/companies?page=1&limit=20&sort=created_at&order=asc&search=
   body: none
   auth: bearer
 }
@@ -15,6 +15,7 @@ params:query {
   limit: 20
   sort: created_at
   order: asc
+  search:
 }
 
 auth:bearer {
@@ -22,13 +23,21 @@ auth:bearer {
 }
 
 docs {
-  Mengambil daftar Company (paginated).
+  Tujuan: browse semua Company + nested `branches`-nya sekaligus, buat
+  overview struktur organisasi tanpa N+1 call ke endpoint List Branches.
+  Beda dari Get Company by ID (single record, `branches` selalu `[]` di sana).
+
+  Mengambil daftar Company (paginated), tiap item embed `branches` (nested,
+  full list milik company itu).
 
   Query Params (optional):
   - page (default 1)
   - limit (default 20, max 100)
   - sort (default created_at) — kolom sortable: code, legal_name, created_at, updated_at
   - order (default asc) — asc | desc
+  - search — match `legal_name` ATAU nama salah satu branch milik company itu
+    (case-insensitive substring). Company yang lolos lewat match branch tetap
+    menampilkan SEMUA branch-nya di `branches`, bukan cuma yang match.
 
   Sort key gak dikenal (di luar whitelist) fallback diam-diam ke created_at,
   bukan error 422.
@@ -50,6 +59,19 @@ docs {
           "npwp": "01.234.567.8-901.000",
           "bpjs_no": "JKN-0001",
           "is_active": true,
+          "branches": [
+            {
+              "id": "660e8400-e29b-41d4-a716-446655440001",
+              "company_id": "550e8400-e29b-41d4-a716-446655440000",
+              "code": "JKT",
+              "name": "Kantor Pusat Jakarta",
+              "city": "Jakarta",
+              "is_main": true,
+              "is_active": true,
+              "created_at": "2026-07-23T13:00:00Z",
+              "updated_at": "2026-07-23T13:00:00Z"
+            }
+          ],
           "created_at": "2026-07-23T13:00:00Z",
           "updated_at": "2026-07-23T13:00:00Z"
         }
@@ -58,6 +80,11 @@ docs {
     }
   }
   ```
+
+  Field nullable (bisa `null`): `npwp`, `bpjs_no` (Company); `city` (nested Branch).
+  Field yang SELALU ada meski zero-value (jangan asumsikan `undefined`/omit):
+  `is_active`, `branches` (`[]` kalau kosong, tidak pernah `null`), `is_main`,
+  `created_at`, `updated_at`.
 
   **500 Internal Server Error**
 }

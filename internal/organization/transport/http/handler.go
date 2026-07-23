@@ -63,7 +63,8 @@ func (h *Handler) CreateCompany(c fiber.Ctx) error {
 
 func (h *Handler) ListCompanies(c fiber.Ctx) error {
 	page, limit, sort, order := parsePagination(c)
-	res, err := h.service.ListCompanies(c.Context(), page, limit, sort, order)
+	search := c.Query("search")
+	res, err := h.service.ListCompanies(c.Context(), page, limit, sort, order, search)
 	if err != nil {
 		return serverError(c, err, "Failed to fetch companies")
 	}

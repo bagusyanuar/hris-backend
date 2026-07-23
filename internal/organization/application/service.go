@@ -30,6 +30,7 @@ func toCompanyResponse(c *domain.Company) CompanyResponse {
 		Npwp:      c.Npwp,
 		BpjsNo:    c.BpjsNo,
 		IsActive:  c.IsActive,
+		Branches:  []BranchResponse{},
 		CreatedAt: c.CreatedAt,
 		UpdatedAt: c.UpdatedAt,
 	}
@@ -72,15 +73,35 @@ func (s *Service) GetCompany(ctx context.Context, id string) (*CompanyResponse, 
 	return &res, nil
 }
 
-func (s *Service) ListCompanies(ctx context.Context, page, limit int, sort, order string) (*CompanyListResponse, error) {
+func (s *Service) ListCompanies(ctx context.Context, page, limit int, sort, order, search string) (*CompanyListResponse, error) {
 	req := pagination.Request{Page: page, Limit: limit, Sort: sort, Order: order}.Normalize()
-	companies, total, err := s.companyRepo.FindAll(ctx, req.Page, req.Limit, req.Sort, req.Order)
+	companies, total, err := s.companyRepo.FindAll(ctx, req.Page, req.Limit, req.Sort, req.Order, search)
 	if err != nil {
 		return nil, err
 	}
+
+	companyIDs := make([]string, 0, len(companies))
+	for _, c := range companies {
+		companyIDs = append(companyIDs, c.ID)
+	}
+	// Batch query, bukan N+1 (decision-log.md ADR-006) — branches nested tetap FULL LIST
+	// milik company itu, tidak difilter oleh `search`.
+	branches, err := s.branchRepo.FindAllByCompanyIDs(ctx, companyIDs)
+	if err != nil {
+		return nil, err
+	}
+	branchesByCompany := make(map[string][]BranchResponse, len(companyIDs))
+	for _, b := range branches {
+		branchesByCompany[b.CompanyID] = append(branchesByCompany[b.CompanyID], toBranchResponse(b))
+	}
+
 	items := make([]CompanyResponse, 0, len(companies))
 	for _, c := range companies {
-		items = append(items, toCompanyResponse(c))
+		item := toCompanyResponse(c)
+		if bs, ok := branchesByCompany[c.ID]; ok {
+			item.Branches = bs
+		}
+		items = append(items, item)
 	}
 	return &CompanyListResponse{
 		Items: items,

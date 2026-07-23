@@ -19,6 +19,10 @@ auth:bearer {
 }
 
 docs {
+  Tujuan: ambil detail satu Company buat form edit/detail view. Catatan:
+  `branches` di sini SELALU `[]` — pakai Get All Companies atau Get All
+  Branches by Company kalau butuh data branch-nya.
+
   Mengambil detail Company berdasarkan ID.
 
   Required Properties:
@@ -39,11 +43,16 @@ docs {
       "npwp": "01.234.567.8-901.000",
       "bpjs_no": "JKN-0001",
       "is_active": true,
+      "branches": [],
       "created_at": "2026-07-23T13:00:00Z",
       "updated_at": "2026-07-23T13:00:00Z"
     }
   }
   ```
+
+  Field nullable (bisa `null`): `npwp`, `bpjs_no`.
+  Field yang SELALU ada meski zero-value: `is_active`, `branches` (`[]`,
+  tidak pernah `null`), `created_at`, `updated_at`.
 
   **404 Not Found**
   ```json
