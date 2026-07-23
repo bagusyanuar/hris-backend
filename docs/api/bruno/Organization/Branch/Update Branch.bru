@@ -1,0 +1,61 @@
+meta {
+  name: Update Branch
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/branches/:id
+  body: json
+  auth: bearer
+}
+
+params:path {
+  id: 660e8400-e29b-41d4-a716-446655440001
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Kantor Pusat Jakarta Selatan",
+    "is_main": true
+  }
+}
+
+docs {
+  Update Branch (partial update — field yang tidak dikirim tidak berubah).
+  Toggle is_main=true otomatis demote main branch lama di company yang
+  sama — lihat docs/technical/organization/decision-log.md ADR-004.
+
+  Optional Properties:
+  - code (max 20, unik dalam company yang sama)
+  - name (max 150)
+  - city (max 100, nullable)
+  - is_main (boolean)
+  - is_active (boolean)
+
+  Expected Responses:
+
+  **200 OK** — Branch updated successfully
+
+  **400 Bad Request** — invalid JSON payload
+
+  **404 Not Found**
+  ```json
+  {
+    "code": 404,
+    "status": "error",
+    "message": "branch not found",
+    "errors": null
+  }
+  ```
+
+  **409 Conflict** — branch code sudah dipakai di Company yang sama
+
+  **422 Unprocessable Entity** — validasi gagal
+
+  **500 Internal Server Error**
+}

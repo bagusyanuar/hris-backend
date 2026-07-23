@@ -1,0 +1,44 @@
+meta {
+  name: Delete Company
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/companies/:id
+  body: none
+  auth: bearer
+}
+
+params:path {
+  id: 550e8400-e29b-41d4-a716-446655440000
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  Soft delete Company (set deleted_at, bukan hard delete).
+  Tidak melakukan cascade delete ke Branch anak (gap eksplisit — lihat
+  docs/technical/organization/tech-spec.md §6.1).
+
+  Required Properties:
+  - id (path parameter)
+
+  Expected Responses:
+
+  **200 OK** — Company deleted successfully
+
+  **404 Not Found**
+  ```json
+  {
+    "code": 404,
+    "status": "error",
+    "message": "company not found",
+    "errors": null
+  }
+  ```
+
+  **500 Internal Server Error**
+}

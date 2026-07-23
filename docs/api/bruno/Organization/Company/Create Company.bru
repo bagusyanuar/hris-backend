@@ -1,0 +1,84 @@
+meta {
+  name: Create Company
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/companies
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "code": "PTA",
+    "legal_name": "PT Alpha Nusantara",
+    "npwp": "01.234.567.8-901.000",
+    "bpjs_no": "JKN-0001"
+  }
+}
+
+docs {
+  Mendaftarkan Company (PT/badan hukum) baru.
+
+  Required Properties:
+  - code (max 20)
+  - legal_name (max 150)
+
+  Optional Properties:
+  - npwp (max 25, nullable — unik kalau diisi)
+  - bpjs_no (max 50, nullable)
+
+  Expected Responses:
+
+  **201 Created**
+  ```json
+  {
+    "code": 201,
+    "status": "success",
+    "message": "Company created successfully",
+    "data": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "code": "PTA",
+      "legal_name": "PT Alpha Nusantara",
+      "npwp": "01.234.567.8-901.000",
+      "bpjs_no": "JKN-0001",
+      "is_active": true,
+      "created_at": "2026-07-23T13:00:00Z",
+      "updated_at": "2026-07-23T13:00:00Z"
+    }
+  }
+  ```
+
+  **400 Bad Request** — invalid JSON payload
+
+  **409 Conflict** — npwp sudah terdaftar di Company lain
+  ```json
+  {
+    "code": 409,
+    "status": "error",
+    "message": "company npwp already registered",
+    "errors": null
+  }
+  ```
+
+  **422 Unprocessable Entity**
+  ```json
+  {
+    "code": 422,
+    "status": "error",
+    "message": "Validation failed",
+    "errors": {
+      "code": ["Kolom code wajib diisi."],
+      "legal_name": ["Kolom legal_name wajib diisi."]
+    }
+  }
+  ```
+
+  **500 Internal Server Error**
+}

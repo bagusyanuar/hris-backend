@@ -1,0 +1,60 @@
+meta {
+  name: Get Branch by ID
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/branches/:id
+  body: none
+  auth: bearer
+}
+
+params:path {
+  id: 660e8400-e29b-41d4-a716-446655440001
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  Mengambil detail Branch berdasarkan ID.
+
+  Required Properties:
+  - id (path parameter)
+
+  Expected Responses:
+
+  **200 OK**
+  ```json
+  {
+    "code": 200,
+    "status": "success",
+    "message": "Branch fetched successfully",
+    "data": {
+      "id": "660e8400-e29b-41d4-a716-446655440001",
+      "company_id": "550e8400-e29b-41d4-a716-446655440000",
+      "code": "JKT",
+      "name": "Kantor Pusat Jakarta",
+      "city": "Jakarta",
+      "is_main": true,
+      "is_active": true,
+      "created_at": "2026-07-23T13:00:00Z",
+      "updated_at": "2026-07-23T13:00:00Z"
+    }
+  }
+  ```
+
+  **404 Not Found**
+  ```json
+  {
+    "code": 404,
+    "status": "error",
+    "message": "branch not found",
+    "errors": null
+  }
+  ```
+
+  **500 Internal Server Error**
+}

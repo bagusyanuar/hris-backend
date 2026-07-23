@@ -1,0 +1,42 @@
+meta {
+  name: Delete Branch
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/branches/:id
+  body: none
+  auth: bearer
+}
+
+params:path {
+  id: 660e8400-e29b-41d4-a716-446655440001
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  Soft delete Branch (set deleted_at, bukan hard delete).
+
+  Required Properties:
+  - id (path parameter)
+
+  Expected Responses:
+
+  **200 OK** — Branch deleted successfully
+
+  **404 Not Found**
+  ```json
+  {
+    "code": 404,
+    "status": "error",
+    "message": "branch not found",
+    "errors": null
+  }
+  ```
+
+  **500 Internal Server Error**
+}

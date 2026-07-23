@@ -1,0 +1,59 @@
+meta {
+  name: Update Company
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/companies/:id
+  body: json
+  auth: bearer
+}
+
+params:path {
+  id: 550e8400-e29b-41d4-a716-446655440000
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "legal_name": "PT Alpha Nusantara Tbk",
+    "is_active": true
+  }
+}
+
+docs {
+  Update Company (partial update — field yang tidak dikirim tidak berubah).
+
+  Optional Properties:
+  - code (max 20)
+  - legal_name (max 150)
+  - npwp (max 25, nullable)
+  - bpjs_no (max 50, nullable)
+  - is_active (boolean)
+
+  Expected Responses:
+
+  **200 OK** — Company updated successfully
+
+  **400 Bad Request** — invalid JSON payload
+
+  **404 Not Found**
+  ```json
+  {
+    "code": 404,
+    "status": "error",
+    "message": "company not found",
+    "errors": null
+  }
+  ```
+
+  **409 Conflict** — npwp sudah terdaftar di Company lain
+
+  **422 Unprocessable Entity** — validasi gagal
+
+  **500 Internal Server Error**
+}

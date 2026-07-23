@@ -1,0 +1,63 @@
+meta {
+  name: Get All Companies
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/companies?page=1&limit=20&sort=created_at&order=asc
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  limit: 20
+  sort: created_at
+  order: asc
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  Mengambil daftar Company (paginated).
+
+  Query Params (optional):
+  - page (default 1)
+  - limit (default 20, max 100)
+  - sort (default created_at) — kolom sortable: code, legal_name, created_at, updated_at
+  - order (default asc) — asc | desc
+
+  Sort key gak dikenal (di luar whitelist) fallback diam-diam ke created_at,
+  bukan error 422.
+
+  Expected Responses:
+
+  **200 OK**
+  ```json
+  {
+    "code": 200,
+    "status": "success",
+    "message": "Companies fetched successfully",
+    "data": {
+      "items": [
+        {
+          "id": "550e8400-e29b-41d4-a716-446655440000",
+          "code": "PTA",
+          "legal_name": "PT Alpha Nusantara",
+          "npwp": "01.234.567.8-901.000",
+          "bpjs_no": "JKN-0001",
+          "is_active": true,
+          "created_at": "2026-07-23T13:00:00Z",
+          "updated_at": "2026-07-23T13:00:00Z"
+        }
+      ],
+      "meta": { "page": 1, "limit": 20, "total": 1 }
+    }
+  }
+  ```
+
+  **500 Internal Server Error**
+}

@@ -1,19 +1,306 @@
 openapi: 3.0.0
 info:
   title: Organization API
-  version: 1.0.0
-  description: API for managing departments, job titles, and job positions.
+  version: 2.0.0
+  description: >
+    API untuk modul Organization scope 2.0.0 — Company (legal entity/PT) &
+    Branch (cabang/lokasi). Lihat docs/PRD/organization.md. Endpoint
+    Departments/JobTitles/JobPositions versi lama sudah tidak didokumentasikan
+    di sini (dipindah scope-nya ke modul workforce-structure per PRD breaking
+    change) — kode existing-nya (`internal/domain/organization`, dst) masih
+    hidup untuk sementara tapi bukan bagian dari contract modul Organization
+    ini lagi.
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
 paths:
-  /api/v1/organization/departments:
+  /api/v1/companies:
+    post:
+      summary: Create Company
+      tags: [Company]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, legal_name]
+              properties:
+                code:
+                  type: string
+                  maxLength: 20
+                  example: "PTA"
+                legal_name:
+                  type: string
+                  maxLength: 150
+                  example: "PT Alpha Nusantara"
+                npwp:
+                  type: string
+                  nullable: true
+                  maxLength: 25
+                  example: "01.234.567.8-901.000"
+                bpjs_no:
+                  type: string
+                  nullable: true
+                  maxLength: 50
+                  example: "JKN-0001"
+      responses:
+        '201':
+          description: Company created successfully
+          content:
+            application/json:
+              example:
+                code: 201
+                status: success
+                message: Company created successfully
+                data:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  code: "PTA"
+                  legal_name: "PT Alpha Nusantara"
+                  npwp: "01.234.567.8-901.000"
+                  bpjs_no: "JKN-0001"
+                  is_active: true
+                  created_at: "2026-07-23T13:00:00Z"
+                  updated_at: "2026-07-23T13:00:00Z"
+        '400':
+          description: Bad Request (Invalid JSON payload)
+          content:
+            application/json:
+              example:
+                code: 400
+                status: "error"
+                message: "Invalid JSON payload"
+                errors: null
+        '409':
+          description: Conflict — NPWP sudah terdaftar di Company lain
+          content:
+            application/json:
+              example:
+                code: 409
+                status: "error"
+                message: "company npwp already registered"
+                errors: null
+        '422':
+          description: Unprocessable Entity — Validation failed
+          content:
+            application/json:
+              example:
+                code: 422
+                status: "error"
+                message: "Validation failed"
+                errors:
+                  code: ["Kolom code wajib diisi."]
+                  legal_name: ["Kolom legal_name wajib diisi."]
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              example:
+                code: 500
+                status: "error"
+                message: "Failed to create company"
+                errors: null
     get:
-      summary: Get all departments
-      tags: [Departments]
+      summary: List Companies
+      tags: [Company]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [code, legal_name, created_at, updated_at]
+            default: created_at
+        - in: query
+          name: order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
       responses:
         '200':
-          description: A list of departments
+          description: Companies fetched successfully
+          content:
+            application/json:
+              example:
+                code: 200
+                status: success
+                message: Companies fetched successfully
+                data:
+                  items:
+                    - id: "550e8400-e29b-41d4-a716-446655440000"
+                      code: "PTA"
+                      legal_name: "PT Alpha Nusantara"
+                      npwp: "01.234.567.8-901.000"
+                      bpjs_no: "JKN-0001"
+                      is_active: true
+                      created_at: "2026-07-23T13:00:00Z"
+                      updated_at: "2026-07-23T13:00:00Z"
+                  meta:
+                    page: 1
+                    limit: 20
+                    total: 1
+        '500':
+          description: Internal Server Error
+
+  /api/v1/companies/{id}:
+    get:
+      summary: Get Company by ID
+      tags: [Company]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Company fetched successfully
+          content:
+            application/json:
+              example:
+                code: 200
+                status: success
+                message: Company fetched successfully
+                data:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  code: "PTA"
+                  legal_name: "PT Alpha Nusantara"
+                  npwp: "01.234.567.8-901.000"
+                  bpjs_no: "JKN-0001"
+                  is_active: true
+                  created_at: "2026-07-23T13:00:00Z"
+                  updated_at: "2026-07-23T13:00:00Z"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              example:
+                code: 404
+                status: "error"
+                message: "company not found"
+                errors: null
+        '500':
+          description: Internal Server Error
+    put:
+      summary: Update Company
+      tags: [Company]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  maxLength: 20
+                  example: "PTA"
+                legal_name:
+                  type: string
+                  maxLength: 150
+                  example: "PT Alpha Nusantara Tbk"
+                npwp:
+                  type: string
+                  nullable: true
+                  maxLength: 25
+                  example: "01.234.567.8-901.000"
+                bpjs_no:
+                  type: string
+                  nullable: true
+                  maxLength: 50
+                  example: "JKN-0001"
+                is_active:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: Company updated successfully
+        '400':
+          description: Bad Request (Invalid JSON payload)
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              example:
+                code: 404
+                status: "error"
+                message: "company not found"
+                errors: null
+        '409':
+          description: Conflict — NPWP sudah terdaftar di Company lain
+        '422':
+          description: Unprocessable Entity — Validation failed
+        '500':
+          description: Internal Server Error
+    delete:
+      summary: Soft Delete Company
+      tags: [Company]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Company deleted successfully
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              example:
+                code: 404
+                status: "error"
+                message: "company not found"
+                errors: null
+        '500':
+          description: Internal Server Error
+
+  /api/v1/companies/{companyId}/branches:
     post:
-      summary: Create a department
-      tags: [Departments]
+      summary: Create Branch under a Company
+      tags: [Branch]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: companyId
+          required: true
+          schema:
+            type: string
+            format: uuid
       requestBody:
         required: true
         content:
@@ -24,18 +311,62 @@ paths:
               properties:
                 code:
                   type: string
-                  example: "IT"
+                  maxLength: 20
+                  example: "JKT"
                 name:
                   type: string
-                  example: "Information Technology"
-                parent_id:
+                  maxLength: 150
+                  example: "Kantor Pusat Jakarta"
+                city:
                   type: string
-                  example: "uuid"
+                  nullable: true
+                  maxLength: 100
+                  example: "Jakarta"
+                is_main:
+                  type: boolean
+                  default: false
+                  example: true
       responses:
         '201':
-          description: Department created
+          description: Branch created successfully
+          content:
+            application/json:
+              example:
+                code: 201
+                status: success
+                message: Branch created successfully
+                data:
+                  id: "660e8400-e29b-41d4-a716-446655440001"
+                  company_id: "550e8400-e29b-41d4-a716-446655440000"
+                  code: "JKT"
+                  name: "Kantor Pusat Jakarta"
+                  city: "Jakarta"
+                  is_main: true
+                  is_active: true
+                  created_at: "2026-07-23T13:00:00Z"
+                  updated_at: "2026-07-23T13:00:00Z"
+        '400':
+          description: Bad Request (Invalid JSON payload)
+        '404':
+          description: Not Found — company_id di path tidak dikenal
+          content:
+            application/json:
+              example:
+                code: 404
+                status: "error"
+                message: "company not found"
+                errors: null
+        '409':
+          description: Conflict — branch code sudah dipakai di Company yang sama
+          content:
+            application/json:
+              example:
+                code: 409
+                status: "error"
+                message: "branch code already registered in this company"
+                errors: null
         '422':
-          description: Unprocessable Entity - Validation failed
+          description: Unprocessable Entity — Validation failed
           content:
             application/json:
               example:
@@ -45,132 +376,202 @@ paths:
                 errors:
                   code: ["Kolom code wajib diisi."]
                   name: ["Kolom name wajib diisi."]
-  /api/v1/organization/departments/{id}:
+        '500':
+          description: Internal Server Error
     get:
-      summary: Get department by ID
-      tags: [Departments]
+      summary: List Branches under a Company
+      tags: [Branch]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: companyId
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [code, name, is_main, created_at, updated_at]
+            default: created_at
+        - in: query
+          name: order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+      responses:
+        '200':
+          description: Branches fetched successfully
+          content:
+            application/json:
+              example:
+                code: 200
+                status: success
+                message: Branches fetched successfully
+                data:
+                  items:
+                    - id: "660e8400-e29b-41d4-a716-446655440001"
+                      company_id: "550e8400-e29b-41d4-a716-446655440000"
+                      code: "JKT"
+                      name: "Kantor Pusat Jakarta"
+                      city: "Jakarta"
+                      is_main: true
+                      is_active: true
+                      created_at: "2026-07-23T13:00:00Z"
+                      updated_at: "2026-07-23T13:00:00Z"
+                  meta:
+                    page: 1
+                    limit: 20
+                    total: 1
+        '404':
+          description: Not Found — company_id di path tidak dikenal
+          content:
+            application/json:
+              example:
+                code: 404
+                status: "error"
+                message: "company not found"
+                errors: null
+        '500':
+          description: Internal Server Error
+
+  /api/v1/branches/{id}:
+    get:
+      summary: Get Branch by ID
+      tags: [Branch]
+      security:
+        - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
           schema:
             type: string
+            format: uuid
       responses:
         '200':
-          description: Department details
-  /api/v1/organization/job-titles:
-    get:
-      summary: Get all job titles
-      tags: [JobTitles]
-      responses:
-        '200':
-          description: A list of job titles
-    post:
-      summary: Create a job title
-      tags: [JobTitles]
+          description: Branch fetched successfully
+          content:
+            application/json:
+              example:
+                code: 200
+                status: success
+                message: Branch fetched successfully
+                data:
+                  id: "660e8400-e29b-41d4-a716-446655440001"
+                  company_id: "550e8400-e29b-41d4-a716-446655440000"
+                  code: "JKT"
+                  name: "Kantor Pusat Jakarta"
+                  city: "Jakarta"
+                  is_main: true
+                  is_active: true
+                  created_at: "2026-07-23T13:00:00Z"
+                  updated_at: "2026-07-23T13:00:00Z"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              example:
+                code: 404
+                status: "error"
+                message: "branch not found"
+                errors: null
+        '500':
+          description: Internal Server Error
+    put:
+      summary: Update Branch
+      tags: [Branch]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
               type: object
-              required: [code, name, grade_level]
               properties:
                 code:
                   type: string
-                  example: "MGR"
+                  maxLength: 20
+                  example: "JKT"
                 name:
                   type: string
-                  example: "Manager"
-                grade_level:
-                  type: integer
-                  example: 5
+                  maxLength: 150
+                  example: "Kantor Pusat Jakarta"
+                city:
+                  type: string
+                  nullable: true
+                  maxLength: 100
+                  example: "Jakarta"
+                is_main:
+                  type: boolean
+                  example: true
+                is_active:
+                  type: boolean
+                  example: true
       responses:
-        '201':
-          description: Job title created
-        '422':
-          description: Unprocessable Entity - Validation failed
+        '200':
+          description: Branch updated successfully
+        '400':
+          description: Bad Request (Invalid JSON payload)
+        '404':
+          description: Not Found
           content:
             application/json:
               example:
-                code: 422
+                code: 404
                 status: "error"
-                message: "Validation failed"
-                errors:
-                  code: ["Kolom code wajib diisi."]
-                  name: ["Kolom name wajib diisi."]
-                  grade_level: ["Kolom grade_level wajib diisi."]
-  /api/v1/organization/job-titles/{id}:
-    get:
-      summary: Get job title by ID
-      tags: [JobTitles]
+                message: "branch not found"
+                errors: null
+        '409':
+          description: Conflict — branch code sudah dipakai di Company yang sama
+        '422':
+          description: Unprocessable Entity — Validation failed
+        '500':
+          description: Internal Server Error
+    delete:
+      summary: Soft Delete Branch
+      tags: [Branch]
+      security:
+        - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
           schema:
             type: string
+            format: uuid
       responses:
         '200':
-          description: Job title details
-  /api/v1/organization/job-positions:
-    get:
-      summary: Get all job positions
-      tags: [JobPositions]
-      responses:
-        '200':
-          description: A list of job positions
-    post:
-      summary: Create a job position
-      tags: [JobPositions]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [department_id, job_title_id, name]
-              properties:
-                department_id:
-                  type: string
-                  example: "uuid"
-                job_title_id:
-                  type: string
-                  example: "uuid"
-                name:
-                  type: string
-                  example: "IT Manager"
-                reports_to_id:
-                  type: string
-                  example: "uuid"
-                headcount_quota:
-                  type: integer
-                  example: 1
-      responses:
-        '201':
-          description: Job position created
-        '422':
-          description: Unprocessable Entity - Validation failed
+          description: Branch deleted successfully
+        '404':
+          description: Not Found
           content:
             application/json:
               example:
-                code: 422
+                code: 404
                 status: "error"
-                message: "Validation failed"
-                errors:
-                  department_id: ["Kolom department_id wajib diisi."]
-                  job_title_id: ["Kolom job_title_id wajib diisi."]
-                  name: ["Kolom name wajib diisi."]
-  /api/v1/organization/job-positions/{id}:
-    get:
-      summary: Get job position by ID
-      tags: [JobPositions]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Job position details
+                message: "branch not found"
+                errors: null
+        '500':
+          description: Internal Server Error
