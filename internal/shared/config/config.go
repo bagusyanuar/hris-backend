@@ -23,6 +23,15 @@ type Config struct {
 	DbSslMode  string `mapstructure:"DB_SSLMODE"`
 	DbTz       string `mapstructure:"DB_TZ"`
 
+	DbMaxOpenConns         int `mapstructure:"DB_MAX_OPEN_CONNS"`
+	DbMaxIdleConns         int `mapstructure:"DB_MAX_IDLE_CONNS"`
+	DbConnMaxLifetimeMin   int `mapstructure:"DB_CONN_MAX_LIFETIME_MINUTES"`
+	DbConnMaxIdleTimeMin   int `mapstructure:"DB_CONN_MAX_IDLE_TIME_MINUTES"`
+	DbConnectTimeoutSec    int `mapstructure:"DB_CONNECT_TIMEOUT_SECONDS"`
+	DbConnectRetryAttempts int `mapstructure:"DB_CONNECT_RETRY_ATTEMPTS"`
+	DbConnectRetryDelaySec int `mapstructure:"DB_CONNECT_RETRY_DELAY_SECONDS"`
+	DbSlowQueryThresholdMs int `mapstructure:"DB_SLOW_QUERY_THRESHOLD_MS"`
+
 	JwtSecret            string `mapstructure:"JWT_SECRET"`
 	JwtExpiryHour        int    `mapstructure:"JWT_EXPIRY_HOUR"`
 	JwtRefreshExpiryHour int    `mapstructure:"JWT_REFRESH_EXPIRY_HOUR"`
@@ -53,9 +62,19 @@ func LoadConfig() (*Config, error) {
 		DbName                string `mapstructure:"DB_NAME"`
 		DbSslMode             string `mapstructure:"DB_SSLMODE"`
 		DbTz                  string `mapstructure:"DB_TZ"`
-		JwtSecret             string `mapstructure:"JWT_SECRET"`
-		JwtExpiryHour         int    `mapstructure:"JWT_EXPIRY_HOUR"`
-		JwtRefreshExpiryHour  int    `mapstructure:"JWT_REFRESH_EXPIRY_HOUR"`
+
+		DbMaxOpenConns         int `mapstructure:"DB_MAX_OPEN_CONNS"`
+		DbMaxIdleConns         int `mapstructure:"DB_MAX_IDLE_CONNS"`
+		DbConnMaxLifetimeMin   int `mapstructure:"DB_CONN_MAX_LIFETIME_MINUTES"`
+		DbConnMaxIdleTimeMin   int `mapstructure:"DB_CONN_MAX_IDLE_TIME_MINUTES"`
+		DbConnectTimeoutSec    int `mapstructure:"DB_CONNECT_TIMEOUT_SECONDS"`
+		DbConnectRetryAttempts int `mapstructure:"DB_CONNECT_RETRY_ATTEMPTS"`
+		DbConnectRetryDelaySec int `mapstructure:"DB_CONNECT_RETRY_DELAY_SECONDS"`
+		DbSlowQueryThresholdMs int `mapstructure:"DB_SLOW_QUERY_THRESHOLD_MS"`
+
+		JwtSecret            string `mapstructure:"JWT_SECRET"`
+		JwtExpiryHour        int    `mapstructure:"JWT_EXPIRY_HOUR"`
+		JwtRefreshExpiryHour int    `mapstructure:"JWT_REFRESH_EXPIRY_HOUR"`
 	}
 
 	if err := viper.Unmarshal(&raw); err != nil {
@@ -71,21 +90,29 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return &Config{
-		AppName:               raw.AppName,
-		AppVersion:            raw.AppVersion,
-		AppEnv:                raw.AppEnv,
-		AppPort:               raw.AppPort,
-		AppDebug:              raw.AppDebug,
-		AppCorsAllowedOrigins: origins,
-		DbHost:                raw.DbHost,
-		DbPort:                raw.DbPort,
-		DbUser:                raw.DbUser,
-		DbPassword:            raw.DbPassword,
-		DbName:                raw.DbName,
-		DbSslMode:             raw.DbSslMode,
-		DbTz:                  raw.DbTz,
-		JwtSecret:             raw.JwtSecret,
-		JwtExpiryHour:         raw.JwtExpiryHour,
-		JwtRefreshExpiryHour:  raw.JwtRefreshExpiryHour,
+		AppName:                raw.AppName,
+		AppVersion:             raw.AppVersion,
+		AppEnv:                 raw.AppEnv,
+		AppPort:                raw.AppPort,
+		AppDebug:               raw.AppDebug,
+		AppCorsAllowedOrigins:  origins,
+		DbHost:                 raw.DbHost,
+		DbPort:                 raw.DbPort,
+		DbUser:                 raw.DbUser,
+		DbPassword:             raw.DbPassword,
+		DbName:                 raw.DbName,
+		DbSslMode:              raw.DbSslMode,
+		DbTz:                   raw.DbTz,
+		DbMaxOpenConns:         raw.DbMaxOpenConns,
+		DbMaxIdleConns:         raw.DbMaxIdleConns,
+		DbConnMaxLifetimeMin:   raw.DbConnMaxLifetimeMin,
+		DbConnMaxIdleTimeMin:   raw.DbConnMaxIdleTimeMin,
+		DbConnectTimeoutSec:    raw.DbConnectTimeoutSec,
+		DbConnectRetryAttempts: raw.DbConnectRetryAttempts,
+		DbConnectRetryDelaySec: raw.DbConnectRetryDelaySec,
+		DbSlowQueryThresholdMs: raw.DbSlowQueryThresholdMs,
+		JwtSecret:              raw.JwtSecret,
+		JwtExpiryHour:          raw.JwtExpiryHour,
+		JwtRefreshExpiryHour:   raw.JwtRefreshExpiryHour,
 	}, nil
 }

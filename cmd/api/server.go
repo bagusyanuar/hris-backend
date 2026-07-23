@@ -1,9 +1,9 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,8 +13,11 @@ import (
 	"github.com/bagusyanuar/hris-backend/internal/di"
 	"github.com/bagusyanuar/hris-backend/internal/shared/config"
 	"github.com/bagusyanuar/hris-backend/internal/shared/middleware"
+	"github.com/bagusyanuar/hris-backend/pkg/logger"
+	"github.com/bagusyanuar/hris-backend/pkg/response"
 
 	"github.com/gofiber/fiber/v3"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -47,13 +50,15 @@ func NewServer(cfg *config.Config, db *gorm.DB) *Server {
 		sqlDB: sqlDB,
 	}
 
+	app.Use(middleware.RequestLogger())
+
 	server.setupRoutes()
 	return server
 }
 
 // setupRoutes initializes all routes and their dependencies.
 func (s *Server) setupRoutes() {
-	// Health Check / Test Route
+	// Root Info Route
 	s.app.Get("/", func(c fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"status":      "success",
@@ -62,6 +67,9 @@ func (s *Server) setupRoutes() {
 			"environment": s.cfg.AppEnv,
 		})
 	})
+
+	// Health Check Route — dipakai k8s liveness/readiness probe
+	s.app.Get("/health", s.healthCheck)
 
 	// Initialize Shared Dependencies
 	tokenGenerator := authAdapter.NewJWTService(s.cfg.JwtSecret, s.cfg.JwtExpiryHour, s.cfg.JwtRefreshExpiryHour)
@@ -89,6 +97,24 @@ func (s *Server) setupRoutes() {
 	})
 }
 
+// healthCheck memverifikasi koneksi database masih hidup, dipakai k8s
+// liveness/readiness probe atau load balancer health check.
+func (s *Server) healthCheck(c fiber.Ctx) error {
+	if s.sqlDB == nil {
+		return response.Error(c, fiber.StatusServiceUnavailable, "database not initialized", nil)
+	}
+
+	ctx, cancel := context.WithTimeout(c.Context(), 2*time.Second)
+	defer cancel()
+
+	if err := s.sqlDB.PingContext(ctx); err != nil {
+		logger.FromContext(c.Context()).Error("health check: database ping failed", zap.Error(err))
+		return response.Error(c, fiber.StatusServiceUnavailable, "database unreachable", nil)
+	}
+
+	return response.Success(c, fiber.StatusOK, "ok", nil)
+}
+
 // Start runs the HTTP server and listens for OS signals for graceful shutdown.
 func (s *Server) Start() {
 	port := s.cfg.AppPort
@@ -102,34 +128,34 @@ func (s *Server) Start() {
 
 	// Jalankan server di goroutine agar tidak memblokir channel signal
 	go func() {
-		log.Printf("Starting %s server on port %s...", s.cfg.AppName, port)
+		logger.L().Info("starting server", zap.String("app", s.cfg.AppName), zap.String("port", port))
 		if err := s.app.Listen(":" + port); err != nil {
-			log.Printf("Server shut down with error: %v", err)
+			logger.L().Error("server shut down with error", zap.Error(err))
 		}
 	}()
 
 	// Menunggu signal masuk (Ctrl+C atau kill command)
 	<-shutdownChan
-	log.Println("Shutting down server gracefully...")
+	logger.L().Info("shutting down server gracefully...")
 
 	// Matikan server Fiber
 	if err := s.app.Shutdown(); err != nil {
-		log.Printf("Error shutting down Fiber server: %v", err)
+		logger.L().Error("error shutting down fiber server", zap.Error(err))
 	} else {
-		log.Println("Fiber server stopped.")
+		logger.L().Info("fiber server stopped")
 	}
 
 	// Close database connection
 	if s.sqlDB != nil {
-		log.Println("Closing database connections...")
+		logger.L().Info("closing database connections...")
 		if err := s.sqlDB.Close(); err != nil {
-			log.Printf("Error closing database connection: %v", err)
+			logger.L().Error("error closing database connection", zap.Error(err))
 		} else {
-			log.Println("Database connection closed successfully.")
+			logger.L().Info("database connection closed successfully")
 		}
 	}
 
 	// Tambahkan jeda opsional kecil untuk membiarkan resource lain bersih-bersih
 	time.Sleep(1 * time.Second)
-	log.Println("HRIS Backend server gracefully stopped.")
+	logger.L().Info("HRIS backend server gracefully stopped")
 }
