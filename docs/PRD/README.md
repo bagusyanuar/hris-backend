@@ -2,6 +2,8 @@
 
 Pusat semua **Product Requirements Document (PRD)** HRIS. Satu file per modul (bounded context), selaras dengan arsitektur domain-first di `internal/`.
 
+> 🧭 **Baca dulu:** [product-vision.md](product-vision.md) — Global PRD / North Star. Menetapkan arah produk & aksioma (single-owner group/holding, **bukan SaaS**) yang mengunci semua PRD modul.
+
 > Aturan penulisan PRD: lihat skill `scaffold-prd` dan [rules/project-docs.md](../../.agents/rules/project-docs.md).
 > **Wajib:** setiap PRD baru / perubahan status / bump versi → perbarui tabel & graph di file ini.
 
@@ -56,8 +58,9 @@ Pusat semua **Product Requirements Document (PRD)** HRIS. Satu file per modul (b
 
 | Modul | File | Versi | Status | Owner | Updated |
 |---|---|---|---|---|---|
-| Organization | [organization.md](organization.md) | — | — | — | — |
+| Organization | [organization.md](organization.md) | 1.1.0 | Draft | bagusyanuar | 2026-07-23 13:23:43 |
 | Employee | [employee.md](employee.md) | — | — | — | — |
+| RBAC (branch/company scoping) | _belum ada_ | — | Planned | — | — |
 | Auth | [auth.md](auth.md) | 1.0.0 | Draft | bagusyanuar | 2026-07-22 22:48:47 |
 | User | [user.md](user.md) | 1.0.0 | Draft | bagusyanuar | 2026-07-22 22:48:47 |
 | Attendance & Time Tracking | _belum ada_ | — | Planned | — | — |
@@ -83,6 +86,10 @@ graph LR
     Employee --> Performance
     Employee --> Recruitment
     Organization --> Employee
+    Organization --> RBAC
+    Organization --> Payroll
+    Organization --> Attendance
+    RBAC --> Employee
     Attendance --> Payroll
     Leave --> Payroll
     User --> Auth
