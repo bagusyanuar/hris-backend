@@ -6,6 +6,8 @@ import (
 
 	"github.com/bagusyanuar/hris-backend/internal/auth/domain"
 	user "github.com/bagusyanuar/hris-backend/internal/user/domain"
+	"github.com/bagusyanuar/hris-backend/pkg/logger"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -32,6 +34,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (*domain.To
 		if errors.Is(err, user.ErrUserNotFound) {
 			return nil, ErrInvalidCredentials
 		}
+		logger.FromContext(ctx).Error("failed to find user by email during login", zap.Error(err))
 		return nil, err
 	}
 
@@ -52,6 +55,7 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (*domain.Tok
 	// Optional: Check if user still exists and active
 	_, err = s.userRepo.FindByID(ctx, claims.UserID)
 	if err != nil {
+		logger.FromContext(ctx).Error("failed to find user by id during token refresh", zap.Error(err))
 		return nil, ErrInvalidToken
 	}
 
