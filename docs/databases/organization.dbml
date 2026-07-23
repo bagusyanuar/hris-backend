@@ -1,39 +1,43 @@
-Project HRIS {
+// DBML untuk modul Organization HRIS Backend
+// Source: docs/PRD/organization.md (v2.0.0)
+// Scope 2.0.0: HANYA Company & Branch (legal entity + lokasi).
+// Department/Job Title/Job Position PINDAH ke docs/PRD/workforce-structure.md
+// dan akan tinggal di docs/databases/workforce_structure.dbml (belum dibuat — di luar scope task ini).
+
+Project HRIS_Organization {
   database_type: 'PostgreSQL'
-  Note: 'HRIS Organization Module (Enterprise-Grade Structure)'
+  Note: 'Company (legal root) & Branch (location root) — fondasi scoping multi-entity seluruh modul operasional.'
 }
 
-Table departments {
-  id uuid [primary key]
-  code varchar [unique, note: 'e.g., IT, HR, FIN']
-  name varchar
-  parent_id uuid [ref: > departments.id, note: 'For sub-departments']
-  is_active boolean [default: true]
-  created_at timestamp
-  updated_at timestamp
-  deleted_at timestamp
+Table companies {
+  id uuid [pk, default: `gen_random_uuid()`, note: 'Legal root — tidak punya company_id, dia sendiri adalah scope.']
+  code varchar(20) [not null]
+  legal_name varchar(150) [not null]
+  npwp varchar(25) [note: 'Nullable — belum dipakai (keputusan tim, 2026-07-23). Partial unique index WHERE npwp IS NOT NULL AND deleted_at IS NULL (idx_companies_npwp) — bukan unique constraint biasa. ErrCompanyNPWPDuplicate saat konflik (PRD §4). Lihat migrations/000002_create_organization_tables.up.sql.']
+  bpjs_no varchar(50) [note: 'Nullable — belum dipakai (keputusan tim, 2026-07-23).']
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+  deleted_at timestamp [default: `null`]
 }
 
-Table job_titles {
-  id uuid [primary key]
-  code varchar [unique, note: 'e.g., MGR, STF']
-  name varchar [note: 'e.g., Manager, Staff']
-  grade_level int [note: 'Hierarchy level, e.g., 5 for manager']
-  is_active boolean [default: true]
-  created_at timestamp
-  updated_at timestamp
-  deleted_at timestamp
+Table branches {
+  id uuid [pk, default: `gen_random_uuid()`]
+  company_id uuid [not null, note: 'Location root scope — WAJIB milik satu Company. ErrCompanyNotFound kalau company_id tak dikenal (PRD §4).']
+  code varchar(20) [not null, note: 'Unik dalam satu Company, bukan unik global — partial unique index (company_id, code) WHERE deleted_at IS NULL (idx_branches_company_code). Code sama boleh dipakai di Company beda.']
+  name varchar(150) [not null]
+  city varchar(100)
+  is_main boolean [not null, default: false, note: 'Kantor pusat PT. Tepat satu is_main=true per company_id — enforced via partial unique index (company_id) WHERE is_main = true AND deleted_at IS NULL (idx_branches_company_main), bukan shorthand DBML. PRD §4 "Satu Company punya satu kantor pusat". Lihat migrations/000002_create_organization_tables.up.sql.']
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+  deleted_at timestamp [default: `null`]
+
+  indexes {
+    (company_id, code) [unique, name: 'idx_branches_company_code', note: 'Partial: WHERE deleted_at IS NULL']
+    company_id [name: 'idx_branches_company_id']
+    company_id [unique, name: 'idx_branches_company_main', note: 'Partial: WHERE is_main = true AND deleted_at IS NULL — enforces one main branch per company']
+  }
 }
 
-Table job_positions {
-  id uuid [primary key]
-  department_id uuid [ref: > departments.id]
-  job_title_id uuid [ref: > job_titles.id]
-  name varchar [note: 'Specific position name, e.g., IT Manager']
-  reports_to_id uuid [ref: > job_positions.id, note: 'Direct manager position']
-  headcount_quota int [default: 1]
-  is_active boolean [default: true]
-  created_at timestamp
-  updated_at timestamp
-  deleted_at timestamp
-}
+Ref: branches.company_id > companies.id
