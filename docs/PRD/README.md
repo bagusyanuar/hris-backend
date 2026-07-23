@@ -58,9 +58,10 @@ Pusat semua **Product Requirements Document (PRD)** HRIS. Satu file per modul (b
 
 | Modul | File | Versi | Status | Owner | Updated |
 |---|---|---|---|---|---|
-| Organization | [organization.md](organization.md) | 1.1.0 | Draft | bagusyanuar | 2026-07-23 13:23:43 |
+| Organization (Company & Branch) | [organization.md](organization.md) | 2.0.0 | Draft | bagusyanuar | 2026-07-23 13:46:17 |
+| Workforce Structure (Dept/Title/Position) | [workforce-structure.md](workforce-structure.md) | 1.0.0 | Draft | bagusyanuar | 2026-07-23 13:46:17 |
 | Employee | [employee.md](employee.md) | — | — | — | — |
-| RBAC (branch/company scoping) | _belum ada_ | — | Planned | — | — |
+| RBAC (company/branch scoping) | _belum ada_ | — | Planned | — | — |
 | Auth | [auth.md](auth.md) | 1.0.0 | Draft | bagusyanuar | 2026-07-22 22:48:47 |
 | User | [user.md](user.md) | 1.0.0 | Draft | bagusyanuar | 2026-07-22 22:48:47 |
 | Attendance & Time Tracking | _belum ada_ | — | Planned | — | — |
@@ -85,10 +86,12 @@ graph LR
     Employee --> Payroll
     Employee --> Performance
     Employee --> Recruitment
+    Organization --> WorkforceStructure
     Organization --> Employee
     Organization --> RBAC
     Organization --> Payroll
     Organization --> Attendance
+    WorkforceStructure --> Employee
     RBAC --> Employee
     Attendance --> Payroll
     Leave --> Payroll

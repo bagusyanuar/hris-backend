@@ -44,15 +44,15 @@ Keputusan paling fundamental yang menyetir seluruh arsitektur:
 
 ## 3. Hierarki Struktural Global (Kanonik)
 
-Semua modul WAJIB mengacu ke hierarki ini. Definisi entity detail ada di [organization.md](organization.md) §0.
+Semua modul WAJIB mengacu ke hierarki ini. Company/Branch didefinisikan di [organization.md](organization.md); Department/Position di [workforce-structure.md](workforce-structure.md).
 
 ```text
 Group / Holding (implisit = 1 instalasi aplikasi, 1 owner)
-  └── Company (PT / badan hukum)        ← company_id  · NPWP, BPJS, payroll, pajak
-        └── Branch (cabang / lokasi)    ← branch_id   · absensi, shift, UMR, kalender libur
-              └── Department            ← struktur unit kerja (tree)
-                    └── Job Position    ← "kursi" (Department × Job Title)
-                          └── Employee  ← menduduki posisi; wajib company_id + branch_id
+  └── Company (PT / badan hukum)        ← company_id  · NPWP, BPJS, payroll, pajak   [Organization]
+        └── Branch (cabang / lokasi)    ← branch_id   · absensi, shift, UMR, libur   [Organization]
+              └── Department            ← struktur unit kerja (tree)                 [Workforce Structure]
+                    └── Job Position    ← "kursi" (Department × Job Title)           [Workforce Structure]
+                          └── Employee  ← menduduki posisi; wajib company_id + branch_id  [Employee]
 ```
 
 **Dua dimensi scoping wajib** (jangan digabung jadi satu kolom):
@@ -79,7 +79,8 @@ Group / Holding (implisit = 1 instalasi aplikasi, 1 owner)
 |-------|-------|-------------|
 | **Auth** | autentikasi & access control dasar | ada |
 | **User** | akun pengguna sistem | ada |
-| **Organization** | struktur: **Company, Branch**, Department, Job Title, Job Position | 3 pilar ada; **Company/Branch = planned** ([organization.md](organization.md) §0) |
+| **Organization** | legal & lokasi: **Company (PT), Branch** | **planned** ([organization.md](organization.md)) |
+| **Workforce Structure** | struktur internal: Department, Job Title, Job Position | 3 pilar ada di kode; **pindah dari Organization** (planned) ([workforce-structure.md](workforce-structure.md)) |
 | **Employee** | data & profil karyawan | ada; **belum punya `company_id`/`branch_id`** (gap) |
 
 ### 5.2. Concern Lintas-Modul (jadi modul/PRD sendiri)
@@ -95,10 +96,11 @@ Attendance & Time Tracking · Leave/Time-off · **Payroll & Compensation** · Pe
 > Semua modul di §5.3 WAJIB lewat proses PRD/Tech-Spec penuh sebelum diimplementasi. Payroll & Attendance = tier **Kompleks** (kalkulasi berlapis / state machine).
 
 ### 5.4. Urutan Eksekusi yang Disarankan (fase besar)
-1. **Fase 0 — Fondasi Multi-Entity.** Company + Branch (CRUD murni). Aman, tak breaking. → [organization.md](organization.md) §0 Fase 1.
-2. **Fase 1 — Scoping dimension.** Migrasi `company_id`/`branch_id` ke Employee + 3 pilar + validasi cross-entity. Breaking, butuh backfill.
-3. **Fase 2 — RBAC.** PRD + modul enforce scoping. Track terpisah, paling berat.
-4. **Fase 3 — Modul HRIS inti** (Attendance → Leave → Payroll → dst), tiap-tiap lewat PRD sendiri, semua sadar dua dimensi scoping.
+1. **Fase 1 — Fondasi Multi-Entity.** Company + Branch (CRUD murni) di modul Organization. Aman, tak breaking. → [organization.md](organization.md).
+2. **Fase 2 — Split Workforce Structure.** Pindah Dept/Title/Position dari `organization` ke modul `workforce-structure` + tambah `company_id`. Breaking (rename + migrasi). → [workforce-structure.md](workforce-structure.md).
+3. **Fase 3 — Scoping Employee.** Migrasi `company_id`/`branch_id` ke Employee + validasi cross-entity. Breaking, butuh backfill.
+4. **Fase 4 — RBAC.** PRD + modul enforce scoping. Track terpisah, paling berat.
+5. **Fase 5 — Modul HRIS inti** (Attendance → Leave → Payroll → dst), tiap-tiap lewat PRD sendiri, semua sadar dua dimensi scoping.
 
 ---
 
