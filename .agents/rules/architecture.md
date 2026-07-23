@@ -20,7 +20,7 @@ hris-backend/
 │   │   ├── application/          # Use Cases / Application Services — package `application`
 │   │   │   ├── service.go        # Koordinasi transaksi, mapping DTO, read/write logic
 │   │   │   └── dto.go            # Request/Response DTO structs
-│   │   ├── infrastructure/       # Detail teknis milik context ini — package `infrastructure`
+│   │   ├── adapter/               # Detail teknis milik context ini — package `adapter`
 │   │   │   ├── postgres.go       # Implementasi interface repo domain (GORM/Postgres)
 │   │   │   └── models/           # GORM model + mapper ToDomain()/FromDomain() — package `models`
 │   │   │       └── employee_model.go
@@ -29,8 +29,8 @@ hris-backend/
 │   │           ├── handler.go    # Endpoint handler
 │   │           └── router.go     # Register routes
 │   ├── organization/             # Bounded Context lain (struktur sama)
-│   ├── auth/                     # Context auth (jwt impl ada di auth/infrastructure/)
-│   ├── user/                     # Context internal (hanya domain + infrastructure)
+│   ├── auth/                     # Context auth (jwt impl ada di auth/adapter/)
+│   ├── user/                     # Context internal (hanya domain + adapter)
 │   ├── shared/                   # Cross-cutting, BUKAN milik satu context
 │   │   ├── config/               # Konfigurasi aplikasi (Viper)
 │   │   ├── database/             # Postgres / GORM setup
@@ -44,22 +44,24 @@ hris-backend/
     └── validator/                # Wrapper go-playground/validator
 ```
 
-> **Nama package = nama layer** (`domain`, `application`, `infrastructure`, `models`, `http`). Karena banyak context berbagi nama package sama, layer `di/` dan `cmd/` **WAJIB** memakai import alias deskriptif (mis. `empDomain`, `orgApp`, `empHTTP`). Di dalam satu context, referensi antar-layer cukup singkat (`application.Service`, `domain.Employee`) tanpa alias.
+> **Nama package = nama layer** (`domain`, `application`, `adapter`, `models`, `http`). Karena banyak context berbagi nama package sama, layer `di/` dan `cmd/` **WAJIB** memakai import alias deskriptif (mis. `empDomain`, `orgApp`, `empHTTP`). Di dalam satu context, referensi antar-layer cukup singkat (`application.Service`, `domain.Employee`) tanpa alias.
+>
+> **Kenapa `adapter`, bukan `infrastructure`?** Nama ini diambil dari terminologi Hexagonal Architecture (Ports & Adapters, Alistair Cockburn) — lebih sering dijumpai developer Go lain di project referensi komunitas (mis. ThreeDotsLabs "Wild Workouts") dibanding istilah `infrastructure` yang berasal dari literatur DDD Java/C#. Tujuannya: developer baru lebih cepat kenal konvensi folder tanpa perlu baca dokumentasi internal dulu. Singular (`adapter`, bukan `adapters`) dipilih supaya konsisten dengan penamaan layer lain di project ini (`domain`, `application`, `transport`).
 
 ---
 
 ## Aturan Dependency (Dependency Rules)
 
 Mengikuti prinsip **Clean Architecture**:
-* **Domain Layer** adalah pusat aplikasi dan **TIDAK BOLEH** mengimport package dari layer lain (`application`, `infrastructure`, atau `interfaces` di bawah `internal`). Domain hanya berisi pure Go standard library dan struct bisnis.
-* **Application Layer** mengkoordinasikan bisnis flow. Layer ini mengimport `domain`, tetapi **TIDAK BOLEH** mengimport detail dari `infrastructure` secara langsung (harus melalui interface/abstraksi repo di domain).
-* **Infrastructure Layer** mengimplementasikan detail teknis (database, API client). Layer ini mengimport `domain` (untuk mengimplementasikan interface repo).
+* **Domain Layer** adalah pusat aplikasi dan **TIDAK BOLEH** mengimport package dari layer lain (`application`, `adapter`, atau `interfaces` di bawah `internal`). Domain hanya berisi pure Go standard library dan struct bisnis.
+* **Application Layer** mengkoordinasikan bisnis flow. Layer ini mengimport `domain`, tetapi **TIDAK BOLEH** mengimport detail dari `adapter` secara langsung (harus melalui interface/abstraksi repo di domain).
+* **Adapter Layer** mengimplementasikan detail teknis (database, API client). Layer ini mengimport `domain` (untuk mengimplementasikan interface repo).
 * **Transport/Presentation Layer** (folder `transport/`, dulu `interfaces/`) menerima request dari luar (HTTP/gRPC/CLI), memanggil `application service`, dan mengembalikan response.
 
 ```mermaid
 graph TD
     Interfaces[Interfaces / HTTP / gRPC] --> Application[Application Services]
-    Infrastructure[Infrastructure / DB Repo] --> Domain[Domain Layer]
+    Adapter[Adapter / DB Repo] --> Domain[Domain Layer]
     Application --> Domain
 ```
 
@@ -71,7 +73,7 @@ graph TD
 * **Entities**: Buat struct yang merepresentasikan identitas unik (misal `Employee` dengan `ID`). Gunakan constructor function (e.g., `NewEmployee(...)`) untuk memastikan entity selalu dalam state yang valid saat di-instantiate.
 * **Value Objects**: Struct tanpa identitas unik yang mendeskripsikan karakteristik (misal `Address`, `Money`). Bersifat *immutable*.
 * **Validation**: Lakukan validasi rule bisnis di dalam domain entity, bukan di HTTP handler.
-* **Pure Domain**: Domain entities **TIDAK BOLEH** memiliki GORM tags (e.g., `gorm:"primaryKey"`). Jika representasi database berbeda, definisikan struct Model terpisah di layer `infrastructure` dan lakukan mapping ke/dari Domain Entity.
+* **Pure Domain**: Domain entities **TIDAK BOLEH** memiliki GORM tags (e.g., `gorm:"primaryKey"`). Jika representasi database berbeda, definisikan struct Model terpisah di layer `adapter` dan lakukan mapping ke/dari Domain Entity.
 * **Repository Interfaces**: Definisikan interface repo di sini.
   ```go
   // internal/employee/domain/repository.go
@@ -87,12 +89,12 @@ graph TD
 * Memanggil repository untuk mengambil/menyimpan entity, dan menjalankan logic aplikasi.
 * *Jangan* meletakkan query SQL atau JSON tags di layer ini.
 
-### C. Infrastructure Layer
+### C. Adapter Layer
 * Mengimplementasikan interface repository yang didefinisikan di domain.
 * Tempat di mana SQL query, ORM (Gorm/SQLX), database driver, dan library external berada.
-* **Model Database**: Jika ada pemetaan database GORM yang rumit, letakkan struct model database di sini (e.g., `internal/employee/infrastructure/models/employee_model.go`) lengkap dengan tag `gorm` dan helper mapper untuk konversi ke Entity Domain.
+* **Model Database**: Jika ada pemetaan database GORM yang rumit, letakkan struct model database di sini (e.g., `internal/employee/adapter/models/employee_model.go`) lengkap dengan tag `gorm` dan helper mapper untuk konversi ke Entity Domain.
 * **Database Migrations**: Semua modifikasi skema database wajib menggunakan SQL migrasi yang dibuat via `make migrate-create` dan diletakkan di folder `./migrations`. Dilarang keras menggunakan GORM `AutoMigrate` pada environment production.
-* Contoh penamaan file repository: `internal/employee/infrastructure/postgres.go` (impl) — bukan lagi `infrastructure/repository/employee_postgres.go`.
+* Contoh penamaan file repository: `internal/employee/adapter/postgres.go` (impl) — bukan lagi `infrastructure/repository/employee_postgres.go`.
 * **Persistensi**: patuhi [persistence-convention.md](persistence-convention.md) — dilarang `db.Save()` untuk upsert by non-PK key, transaksi dimiliki application layer, dan `FindXxx` not-found wajib sentinel error.
 
 ### D. Transport/HTTP Layer (`internal/<context>/transport/http/`)

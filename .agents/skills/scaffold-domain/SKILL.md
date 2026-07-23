@@ -26,7 +26,7 @@ internal/<domain_name>/
 ├── application/         # package application
 │   ├── service.go
 │   └── dto.go
-├── infrastructure/      # package infrastructure
+├── adapter/              # package adapter
 │   ├── postgres.go
 │   └── models/          # package models
 │       └── <domain_name>_model.go
@@ -45,7 +45,7 @@ internal/<domain_name>/
    - `service.go`: application service koordinasi transaksi. **DILARANG generate UUID di sini** — serahkan ke domain constructor.
    - `dto.go`: Request & Response DTOs. Untuk `Update...Request`, gunakan pointer (`*bool`, `*string`) agar bisa membedakan `null` dengan *zero value*.
 
-3. **Infrastructure Layer** (`internal/<domain_name>/infrastructure/`, package `infrastructure`):
+3. **Adapter Layer** (`internal/<domain_name>/adapter/`, package `adapter`):
    - `postgres.go`: implementasi interface repository. **Insert pakai `Create()`, JANGAN `Save()`** (lihat persistence-convention.md §1). Not-found → map `gorm.ErrRecordNotFound` ke sentinel error domain.
    - `models/<domain_name>_model.go` (package `models`): Model GORM + mapper `ToDomain()` / `FromDomain()`. `ToDomain()` **merekonstruksi struct langsung** (tidak lewat constructor, agar tidak generate UUID baru).
 
@@ -55,7 +55,7 @@ internal/<domain_name>/
 
 5. **Dependency Injection (Google Wire)** (`internal/di/`):
    - Tambahkan struct Handler ke `APIHandlers` di `internal/di/api.go` dan panggil `RegisterRoutes`.
-   - Tambahkan constructor Repository, Service, Handler ke `ProviderSet` di `internal/di/wire.go`. **Gunakan import alias deskriptif** (mis. `<domain>Domain`, `<domain>App`, `<domain>Infra`, `<domain>HTTP`).
+   - Tambahkan constructor Repository, Service, Handler ke `ProviderSet` di `internal/di/wire.go`. **Gunakan import alias deskriptif** (mis. `<domain>Domain`, `<domain>App`, `<domain>Adapter`, `<domain>HTTP`).
    - Jalankan `go run github.com/google/wire/cmd/wire@latest ./internal/di` untuk regen `wire_gen.go`.
 
 ## Contoh Template
@@ -116,7 +116,7 @@ type Repository interface {
 }
 ```
 
-### `internal/<domain_name>/infrastructure/models/<domain_name>_model.go`
+### `internal/<domain_name>/adapter/models/<domain_name>_model.go`
 ```go
 package models
 
@@ -170,16 +170,16 @@ func <EntityName>FromDomain(e *domain.<EntityName>) *<EntityName>Model {
 }
 ```
 
-### `internal/<domain_name>/infrastructure/postgres.go`
+### `internal/<domain_name>/adapter/postgres.go`
 ```go
-package infrastructure
+package adapter
 
 import (
 	"context"
 	"errors"
 
 	"github.com/bagusyanuar/hris-backend/internal/<domain_name>/domain"
-	"github.com/bagusyanuar/hris-backend/internal/<domain_name>/infrastructure/models"
+	"github.com/bagusyanuar/hris-backend/internal/<domain_name>/adapter/models"
 	"gorm.io/gorm"
 )
 
@@ -264,9 +264,9 @@ func (h *Handler) Get(c fiber.Ctx) error    { /* full impl */ }
 ### Import alias di `internal/di/wire.go`
 ```go
 import (
-	<domain>Domain "github.com/bagusyanuar/hris-backend/internal/<domain_name>/domain"
-	<domain>App    "github.com/bagusyanuar/hris-backend/internal/<domain_name>/application"
-	<domain>Infra  "github.com/bagusyanuar/hris-backend/internal/<domain_name>/infrastructure"
-	<domain>HTTP   "github.com/bagusyanuar/hris-backend/internal/<domain_name>/transport/http"
+	<domain>Domain  "github.com/bagusyanuar/hris-backend/internal/<domain_name>/domain"
+	<domain>App     "github.com/bagusyanuar/hris-backend/internal/<domain_name>/application"
+	<domain>Adapter "github.com/bagusyanuar/hris-backend/internal/<domain_name>/adapter"
+	<domain>HTTP    "github.com/bagusyanuar/hris-backend/internal/<domain_name>/transport/http"
 )
 ```

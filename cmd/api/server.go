@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	authInfra "github.com/bagusyanuar/hris-backend/internal/auth/infrastructure"
+	authAdapter "github.com/bagusyanuar/hris-backend/internal/auth/adapter"
 	"github.com/bagusyanuar/hris-backend/internal/di"
 	"github.com/bagusyanuar/hris-backend/internal/shared/config"
 	"github.com/bagusyanuar/hris-backend/internal/shared/middleware"
@@ -64,7 +64,7 @@ func (s *Server) setupRoutes() {
 	})
 
 	// Initialize Shared Dependencies
-	tokenGenerator := authInfra.NewJWTService(s.cfg.JwtSecret, s.cfg.JwtExpiryHour, s.cfg.JwtRefreshExpiryHour)
+	tokenGenerator := authAdapter.NewJWTService(s.cfg.JwtSecret, s.cfg.JwtExpiryHour, s.cfg.JwtRefreshExpiryHour)
 
 	// Setup API Routes
 	api := s.app.Group("/api/v1")

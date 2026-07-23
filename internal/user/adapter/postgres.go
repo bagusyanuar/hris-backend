@@ -1,11 +1,11 @@
-package infrastructure
+package adapter
 
 import (
 	"context"
 	"errors"
 
 	"github.com/bagusyanuar/hris-backend/internal/user/domain"
-	"github.com/bagusyanuar/hris-backend/internal/user/infrastructure/models"
+	"github.com/bagusyanuar/hris-backend/internal/user/adapter/models"
 	"gorm.io/gorm"
 )
 

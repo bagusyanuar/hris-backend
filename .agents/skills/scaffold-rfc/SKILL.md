@@ -31,7 +31,7 @@ Briefly state what is being engineered and provide a direct link to the relevant
 Explain how this module fits into the Domain-Driven Design (DDD) architecture of the HRIS backend.
 - Define the **Aggregate Root**.
 - Define the **Value Objects** and child entities.
-- Outline the **Folder Structure** that will be generated following the **domain-first** layout: one context folder `internal/[module]/` containing `domain/`, `application/`, `infrastructure/` (+ `infrastructure/models/`), and `transport/http/`.
+- Outline the **Folder Structure** that will be generated following the **domain-first** layout: one context folder `internal/[module]/` containing `domain/`, `application/`, `adapter/` (+ `adapter/models/`), and `transport/http/`.
 
 ### 2.3. Cross-Domain Dependencies (Bounded Context Integrations)
 Examine how this module communicates with other modules.
@@ -53,7 +53,7 @@ For each endpoint, detail:
 
 ### 2.5. Implementation Details & Algorithms
 Explain the internal technical flow and business logic execution.
-- **Sequence / Flow:** How the layers interact (HTTP Handler -> Application Service -> Domain -> Infrastructure Repo). Use Mermaid.js diagrams if the flow is highly complex.
+- **Sequence / Flow:** How the layers interact (HTTP Handler -> Application Service -> Domain -> Adapter Repo). Use Mermaid.js diagrams if the flow is highly complex.
 - **Database Transactions:** Identify operations that require strict ACID Transactions (e.g., saving an Employee, Personal Data, and Bank Account atomically in one commit).
 - **Domain Errors:** List the custom Go errors to be defined (e.g., `ErrEmployeeNotFound`, `ErrKtpDuplicate`).
 

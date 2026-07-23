@@ -1,6 +1,6 @@
 # Konvensi Persistensi (Repository, Transaction, Data Integrity)
 
-Aturan ini mengatur **cara menyimpan & mengambil data** di Infrastructure Layer dan **siapa yang memegang transaksi**. Tujuannya mencegah bug integritas data yang tidak tertangkap oleh compiler maupun linter (mis. silent no-op saat update). Semua aturan di bawah bersifat **WAJIB (STRICT)**.
+Aturan ini mengatur **cara menyimpan & mengambil data** di Adapter Layer dan **siapa yang memegang transaksi**. Tujuannya mencegah bug integritas data yang tidak tertangkap oleh compiler maupun linter (mis. silent no-op saat update). Semua aturan di bawah bersifat **WAJIB (STRICT)**.
 
 ---
 

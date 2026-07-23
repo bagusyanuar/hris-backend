@@ -1,6 +1,6 @@
 # Konvensi Kode Go
 
-1. **Gunakan Context**: Selalu sertakan `context.Context` sebagai argumen pertama pada fungsi-fungsi di layer application, domain repository, dan infrastructure (misal `FindByID(ctx context.Context, id string)`).
+1. **Gunakan Context**: Selalu sertakan `context.Context` sebagai argumen pertama pada fungsi-fungsi di layer application, domain repository, dan adapter (misal `FindByID(ctx context.Context, id string)`).
 2. **Error Handling**:
    - Tangani error sedini mungkin.
    - Jangan abaikan error (`_ = someFunc()`).
