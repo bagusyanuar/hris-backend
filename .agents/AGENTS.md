@@ -34,6 +34,7 @@ HRIS Backend adalah sistem Human Resource Information System yang dirancang untu
 5. [Dokumen Proyek (PRD, Tech Spec, DBML)](rules/project-docs.md) — lokasi dan format dokumen requirement & teknis.
 6. [UUID Generation (Primary Key)](rules/uuid-generation.md) — pola auto-generate UUID di Domain & Adapter layer (single source of generation).
 7. [Konvensi Persistensi (Repository, Transaction, Data Integrity)](rules/persistence-convention.md) — larangan `db.Save()` untuk upsert, transaction ownership di application layer, kontrak not-found sentinel error, larangan bocor error internal ke client.
+8. [Konvensi Logging (Zap)](rules/logging-convention.md) — single source `pkg/logger`, context propagation via `logger.FromContext`, log sekali di boundary (bukan tiap layer), structured fields.
 
 ---
 

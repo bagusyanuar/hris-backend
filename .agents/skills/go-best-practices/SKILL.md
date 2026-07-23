@@ -15,6 +15,7 @@ This skill contains rules that MUST be followed when writing, refactoring, or re
 ## 2. Robustness & Error Handling
 * **Error Wrapping:** Never return raw errors to the upper layer. Always wrap errors with context using `%w`. (Example: `fmt.Errorf("failed to fetch user %s: %w", userID, err)`).
 * **Resource Cleanup:** ALWAYS use `defer` immediately after error-checking to close resources (e.g., `defer resp.Body.Close()`, `defer rows.Close()`). Do not leak memory or connections.
+* **Logging:** Use `pkg/logger` (`zap` wrapper) via `logger.FromContext(ctx)` — never the stdlib `log` package. Log once at the boundary where an error turns into a `5xx` response or gets reclassified into a different sentinel error; don't add a log call at every passthrough layer (duplicate noise). See [logging-convention.md](../../rules/logging-convention.md).
 
 ## 3. Concurrency & Timeout
 * **Goroutine Leaks:** Every goroutine (`go func()`) MUST be guaranteed to exit. Never create a goroutine that blocks indefinitely due to an unclosed channel or missing context cancellation.

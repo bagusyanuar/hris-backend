@@ -102,3 +102,4 @@ graph TD
 * **Validasi input**: WAJIB menggunakan `go-playground/validator/v10` melalui package wrapper `pkg/validator`. Jika validasi gagal, kembalikan HTTP `422 Unprocessable Entity` dengan format dictionary array (seperti standar Laravel).
 * Panggil Application Service.
 * Mengembalikan response HTTP menggunakan package `pkg/response` (`response.Success` atau `response.Error`) untuk menjamin standardisasi JSON (berisi `code`, `status`, `message`, `data`/`errors`). Pastikan field `data` mengembalikan `[]` jika array kosong (hindari `null` slice).
+* **Scope-nya bukan cuma per-context `transport/http/`**: aturan `pkg/response` ini berlaku di **semua** kode yang menulis response HTTP langsung ke client, termasuk `internal/shared/middleware/` (mis. `AuthProtected` yang balikan 401). DILARANG pakai `c.Status(...).JSON(fiber.Map{...})` mentah di middleware — envelope beda dari endpoint lain bikin FE harus handle 2 bentuk error untuk kasus yang sama.
