@@ -19,24 +19,33 @@ import (
 
 	authDomain "github.com/bagusyanuar/hris-backend/internal/auth/domain"
 	userAdapter "github.com/bagusyanuar/hris-backend/internal/user/adapter"
+
+	orgAdapter "github.com/bagusyanuar/hris-backend/internal/organization/adapter"
+	orgApp "github.com/bagusyanuar/hris-backend/internal/organization/application"
+	orgHTTP "github.com/bagusyanuar/hris-backend/internal/organization/transport/http"
 )
 
 var RepositorySet = wire.NewSet(
 	userAdapter.NewUserRepository,
 	repository.NewOrganizationRepository,
 	repository.NewEmployeeRepository,
+	orgAdapter.NewCompanyRepository,
+	orgAdapter.NewBranchRepository,
+	orgAdapter.NewGormTxManager,
 )
 
 var ServiceSet = wire.NewSet(
 	authApp.NewService,
 	organization.NewService,
 	employee.NewService,
+	orgApp.NewService,
 )
 
 var HandlerSet = wire.NewSet(
 	authHTTP.NewHandler,
 	httpOrg.NewHandler,
 	httpEmployee.NewHandler,
+	orgHTTP.NewHandler,
 	wire.Struct(new(APIHandlers), "*"),
 )
 

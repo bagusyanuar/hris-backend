@@ -1,0 +1,74 @@
+package pagination
+
+import "strings"
+
+const (
+	DefaultPage  = 1
+	DefaultLimit = 20
+	MaxLimit     = 100
+)
+
+// Request adalah parameter halaman + sort mentah dari client (query param
+// page/limit/sort/order). Sort adalah logical key dari client (mis. "name"),
+// BUKAN nama kolom DB asli — resolusinya lewat OrderClause + SortMap supaya
+// gak ada raw client string yang nyampe ke GORM Order() (SQL injection).
+type Request struct {
+	Page  int
+	Limit int
+	Sort  string
+	Order string // "asc" | "desc"
+}
+
+// Normalize mengisi default (page=1, limit=20, order=asc) dan meng-cap limit
+// maksimum, supaya caller (application/handler) gak perlu ulang logic ini
+// tiap domain. Sort TIDAK divalidasi di sini (whitelist-nya beda tiap entity)
+// — itu tanggung jawab OrderClause di adapter layer.
+func (r Request) Normalize() Request {
+	if r.Page < 1 {
+		r.Page = DefaultPage
+	}
+	if r.Limit < 1 || r.Limit > MaxLimit {
+		r.Limit = DefaultLimit
+	}
+	if !strings.EqualFold(r.Order, "desc") {
+		r.Order = "asc"
+	} else {
+		r.Order = "desc"
+	}
+	return r
+}
+
+func (r Request) Offset() int {
+	return (r.Page - 1) * r.Limit
+}
+
+// SortMap memetakan logical sort key yang boleh dipakai client ke nama kolom
+// DB asli. WAJIB whitelist eksplisit per entity — jangan pernah teruskan
+// Request.Sort mentah ke GORM Order().
+type SortMap map[string]string
+
+// OrderClause mengembalikan klausa "kolom ASC/DESC" yang aman buat GORM
+// .Order(...). Kalau r.Sort gak ada di whitelist allowed, fallback ke
+// defaultSort (juga harus ada di allowed).
+func (r Request) OrderClause(allowed SortMap, defaultSort string) string {
+	col, ok := allowed[r.Sort]
+	if !ok {
+		col = allowed[defaultSort]
+	}
+	dir := "ASC"
+	if strings.EqualFold(r.Order, "desc") {
+		dir = "DESC"
+	}
+	return col + " " + dir
+}
+
+// Meta adalah metadata halaman yang dikembalikan ke client bersama Items.
+type Meta struct {
+	Page  int   `json:"page"`
+	Limit int   `json:"limit"`
+	Total int64 `json:"total"`
+}
+
+func NewMeta(req Request, total int64) Meta {
+	return Meta{Page: req.Page, Limit: req.Limit, Total: total}
+}

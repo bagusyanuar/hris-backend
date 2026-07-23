@@ -15,6 +15,9 @@ import (
 	"github.com/bagusyanuar/hris-backend/internal/infrastructure/repository"
 	employee2 "github.com/bagusyanuar/hris-backend/internal/interfaces/http/employee"
 	organization2 "github.com/bagusyanuar/hris-backend/internal/interfaces/http/organization"
+	adapter2 "github.com/bagusyanuar/hris-backend/internal/organization/adapter"
+	application2 "github.com/bagusyanuar/hris-backend/internal/organization/application"
+	http2 "github.com/bagusyanuar/hris-backend/internal/organization/transport/http"
 	"github.com/bagusyanuar/hris-backend/internal/user/adapter"
 	"github.com/google/wire"
 	"gorm.io/gorm"
@@ -32,18 +35,24 @@ func InitializeAPI(db *gorm.DB, tokenGen domain.TokenGenerator) (*APIHandlers, e
 	employeeRepository := repository.NewEmployeeRepository(db)
 	employeeService := employee.NewService(employeeRepository)
 	employeeHandler := employee2.NewHandler(employeeService)
+	companyRepository := adapter2.NewCompanyRepository(db)
+	branchRepository := adapter2.NewBranchRepository(db)
+	txManager := adapter2.NewGormTxManager(db)
+	applicationService := application2.NewService(companyRepository, branchRepository, txManager)
+	httpHandler := http2.NewHandler(applicationService)
 	apiHandlers := &APIHandlers{
-		Auth:     handler,
-		Org:      organizationHandler,
-		Employee: employeeHandler,
+		Auth:         handler,
+		Org:          organizationHandler,
+		Employee:     employeeHandler,
+		Organization: httpHandler,
 	}
 	return apiHandlers, nil
 }
 
 // wire.go:
 
-var RepositorySet = wire.NewSet(adapter.NewUserRepository, repository.NewOrganizationRepository, repository.NewEmployeeRepository)
+var RepositorySet = wire.NewSet(adapter.NewUserRepository, repository.NewOrganizationRepository, repository.NewEmployeeRepository, adapter2.NewCompanyRepository, adapter2.NewBranchRepository, adapter2.NewGormTxManager)
 
-var ServiceSet = wire.NewSet(application.NewService, organization.NewService, employee.NewService)
+var ServiceSet = wire.NewSet(application.NewService, organization.NewService, employee.NewService, application2.NewService)
 
-var HandlerSet = wire.NewSet(http.NewHandler, organization2.NewHandler, employee2.NewHandler, wire.Struct(new(APIHandlers), "*"))
+var HandlerSet = wire.NewSet(http.NewHandler, organization2.NewHandler, employee2.NewHandler, http2.NewHandler, wire.Struct(new(APIHandlers), "*"))
