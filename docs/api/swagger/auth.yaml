@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: HRIS Auth API
-  version: 1.0.0
+  version: 1.0.1
   description: Authentication domain endpoints for HRIS Backend.
 servers:
   - url: http://localhost:8000/api/v1
@@ -107,11 +107,21 @@ paths:
                   expires_in: 3600
                   token_type: "Bearer"
         '401':
-          description: Unauthorized - Refresh token missing from cookies or expired
+          description: Unauthorized - Refresh token missing from cookies, or present but invalid/expired
           content:
             application/json:
-              example:
-                code: 401
-                status: "error"
-                message: "Invalid or expired refresh token"
-                errors: "invalid or expired token"
+              examples:
+                MissingCookie:
+                  summary: Refresh token cookie not sent
+                  value:
+                    code: 401
+                    status: "error"
+                    message: "Refresh token missing"
+                    errors: null
+                InvalidOrExpired:
+                  summary: Refresh token present but invalid, expired, or wrong type
+                  value:
+                    code: 401
+                    status: "error"
+                    message: "Invalid or expired refresh token"
+                    errors: "invalid or expired token"

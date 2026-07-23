@@ -31,8 +31,19 @@ docs {
   }
   ```
 
-  **401 Unauthorized**
-  `refresh_token` tidak ditemukan di cookie, atau sudah expired, atau sudah tidak valid.
+  **401 Unauthorized — Cookie Tidak Ada**
+  `refresh_token` tidak ditemukan di cookie (tidak dikirim sama sekali).
+  ```json
+  {
+    "code": 401,
+    "status": "error",
+    "message": "Refresh token missing",
+    "errors": null
+  }
+  ```
+
+  **401 Unauthorized — Token Invalid/Expired**
+  `refresh_token` ada di cookie tapi sudah expired, salah signature, atau bertipe `access` (bukan `refresh`).
   ```json
   {
     "code": 401,
