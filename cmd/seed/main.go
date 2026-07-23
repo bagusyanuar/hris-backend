@@ -4,8 +4,8 @@ import (
 	"errors"
 	"log"
 
-	"github.com/bagusyanuar/hris-backend/internal/infrastructure/config"
-	"github.com/bagusyanuar/hris-backend/internal/infrastructure/database"
+	"github.com/bagusyanuar/hris-backend/internal/shared/config"
+	"github.com/bagusyanuar/hris-backend/internal/shared/database"
 	"github.com/bagusyanuar/hris-backend/internal/user/infrastructure/models"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"

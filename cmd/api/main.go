@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/bagusyanuar/hris-backend/internal/infrastructure/config"
-	"github.com/bagusyanuar/hris-backend/internal/infrastructure/database"
+	"github.com/bagusyanuar/hris-backend/internal/shared/config"
+	"github.com/bagusyanuar/hris-backend/internal/shared/database"
 )
 
 func main() {
