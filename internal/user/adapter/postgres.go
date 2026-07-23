@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/bagusyanuar/hris-backend/internal/user/domain"
 	"github.com/bagusyanuar/hris-backend/internal/user/adapter/models"
+	"github.com/bagusyanuar/hris-backend/internal/user/domain"
 	"gorm.io/gorm"
 )
 
