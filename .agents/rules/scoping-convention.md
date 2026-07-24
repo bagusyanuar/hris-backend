@@ -53,6 +53,23 @@ type Scope struct {
 
 > **Owner / Group Admin** = scope kosong (akses semua PT & cabang). **Company Admin** = 1 `company_id`, semua branch. **Branch Admin** = 1 company + 1 branch. Detail role di PRD **RBAC**.
 
+### 3.1. Active Scope Selector — Header (`X-Company-Id`/`X-Branch-Id`), BUKAN Query Param
+
+FE (mis. workspace switcher di sidebar — pilih PT & cabang aktif) butuh cara ngirim tahu backend "PT/cabang mana yang lagi aktif dilihat user". Ini **beda konsep** dari `Scope` di atas:
+
+- **`scope.FromContext(ctx)`** = *allowed set* — batas otorisasi user, WAJIB diturunkan dari JWT/RBAC assignment server-side (DB lookup role→company/branch). **TIDAK PERNAH** dari input client.
+- **Active selector** = pilihan "lagi kerja di PT/cabang mana" saat ini — dikirim client via header **`X-Company-Id`** dan **`X-Branch-Id`** (opsional, cuma diisi kalau relevan buat endpoint itu).
+
+**Kenapa header, bukan query param:** pilihan ini cross-cutting — kepake di hampir semua request (`POST`/`PUT`/`DELETE`, bukan cuma `GET` List/filter). Query param berarti tiap endpoint URL kudu bawa `?company_id=...` manual & rawan kelupaan di satu endpoint; header cukup di-set sekali di HTTP client interceptor (axios `defaults.headers`/fetch wrapper) sekali pas switch + sekali pas app load (baca dari localStorage/cookie), otomatis nempel ke semua request abis itu.
+
+**WAJIB divalidasi server-side, jangan dipercaya mentah** — alur middleware:
+1. JWT diverifikasi → dapat `scope.FromContext(ctx)` asli (allowed set, dari assignment DB, bukan header).
+2. Middleware baca header `X-Company-Id`/`X-Branch-Id`.
+3. Validasi: nilai header **WAJIB subset** dari allowed set (`scope.CompanyIDs` kosong = Owner = header apa aja boleh; kalau `scope.CompanyIDs` terisi, header WAJIB salah satu isinya — kalau tidak, `403 Forbidden`, jangan diam-diam di-ignore).
+4. Kalau valid, itu jadi **active scope** request ini — dipakai buat filter query DB (gantiin/mempersempit allowed set, bukan menambah akses).
+
+Endpoint yang gak perlu tau active company/branch (mis. `GET /companies` punya Owner) boleh abaikan header ini sepenuhnya.
+
 ---
 
 ## 4. Sequencing — Enforcement Bertahap (baca sebelum scaffold modul sekarang)
@@ -76,3 +93,4 @@ Intinya: **struktur (kolom + signature) dipaku sekarang; pengisian enforcement n
 - [ ] Write memvalidasi entity dalam scope; `branch_id` se-`company_id` (mismatch → sentinel error).
 - [ ] Tidak ada kolom scope nullable pada kelas yang mewajibkannya.
 - [ ] Kalau entity dipilih "Global master" (tanpa scope) — ada justifikasi eksplisit datanya identik lintas PT.
+- [ ] Kalau endpoint baca header `X-Company-Id`/`X-Branch-Id` (§3.1) — nilainya divalidasi subset dari `scope.FromContext(ctx)` sebelum dipakai filter, TIDAK dipercaya mentah dari client.

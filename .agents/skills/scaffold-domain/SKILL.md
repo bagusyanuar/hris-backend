@@ -7,7 +7,7 @@ description: Scaffold a new domain module/bounded context following the HRIS DDD
 
 Gunakan skill ini ketika user meminta untuk membuat modul domain baru (misalnya: `attendance`, `payroll`, `leave`).
 
-Project ini memakai layout **domain-first**: satu bounded context = **satu folder utuh** di `internal/<domain_name>/` berisi keempat layer di dalamnya. Patuhi [architecture.md](../../rules/architecture.md), [uuid-generation.md](../../rules/uuid-generation.md), [persistence-convention.md](../../rules/persistence-convention.md), [scoping-convention.md](../../rules/scoping-convention.md), dan [pagination-convention.md](../../rules/pagination-convention.md) (kalau modul punya endpoint List/FindAll).
+Project ini memakai layout **domain-first**: satu bounded context = **satu folder utuh** di `internal/<domain_name>/` berisi keempat layer di dalamnya. Patuhi [architecture.md](../../rules/architecture.md), [uuid-generation.md](../../rules/uuid-generation.md), [persistence-convention.md](../../rules/persistence-convention.md), [scoping-convention.md](../../rules/scoping-convention.md), [pagination-convention.md](../../rules/pagination-convention.md) (kalau modul punya endpoint List/FindAll), dan [preload-convention.md](../../rules/preload-convention.md) (kalau response perlu nampilin nama entity FK relasi lain — WAJIB nested `{id, name}`, bukan flat `<relasi>_name`).
 
 ## Step 0 — Klasifikasi Scope Entity (WAJIB, SEBELUM nulis kode)
 
