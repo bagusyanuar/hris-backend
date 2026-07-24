@@ -40,7 +40,7 @@ func init() {
 
 // ValidateStruct validates a given struct and returns a map of human-readable field errors (Laravel format).
 // It returns nil if there are no errors.
-func ValidateStruct(data interface{}) map[string][]string {
+func ValidateStruct(data any) map[string][]string {
 	err := Validate.Struct(data)
 	if err == nil {
 		return nil

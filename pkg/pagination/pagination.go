@@ -92,11 +92,16 @@ func (r Request) SearchClause(columns ...string) (string, []any) {
 
 // Meta adalah metadata halaman yang dikembalikan ke client bersama Items.
 type Meta struct {
-	Page  int   `json:"page"`
-	Limit int   `json:"limit"`
-	Total int64 `json:"total"`
+	Page       int   `json:"page"`
+	Limit      int   `json:"limit"`
+	Total      int64 `json:"total"`
+	TotalPages int64 `json:"total_pages"`
 }
 
 func NewMeta(req Request, total int64) Meta {
-	return Meta{Page: req.Page, Limit: req.Limit, Total: total}
+	totalPages := int64(0)
+	if req.Limit > 0 {
+		totalPages = (total + int64(req.Limit) - 1) / int64(req.Limit)
+	}
+	return Meta{Page: req.Page, Limit: req.Limit, Total: total, TotalPages: totalPages}
 }
