@@ -33,13 +33,27 @@ return &ListResponse{Items: items, Meta: pagination.NewMeta(req, total)}, nil
 ```
 `Normalize()` mengisi default `page=1`, `limit=20` (cap `MaxLimit=100`), dan `order` jadi `"asc"`/`"desc"` valid. `Sort` (logical key) **TIDAK** divalidasi di layer ini — whitelist-nya baru terjadi di Adapter (§3), karena kolom sortable beda tiap entity. `search` **TIDAK** perlu `Normalize()` (gak ada default/cap — kosong = tanpa filter, sah apa adanya) — cukup diteruskan sebagai parameter primitif terpisah ke repository, sejajar `sort`/`order`.
 
-DTO List Response **WAJIB** pakai `pagination.Meta` untuk field `meta`, jangan bikin struct `ListMeta` lokal duplikat per domain:
+DTO List Response **WAJIB** pakai `pagination.Meta` untuk field `Meta` — struct `{Items, Meta}` ini adalah *return type* method Application Service, BUKAN bentuk envelope HTTP akhir (lihat pemetaan ke `response.SuccessList` di bawah). Jangan bikin struct `ListMeta` lokal duplikat per domain:
 ```go
 type CompanyListResponse struct {
     Items []CompanyResponse `json:"items"`
     Meta  pagination.Meta   `json:"meta"`
 }
 ```
+
+**Transport layer WAJIB serialize lewat `response.SuccessList(c, code, message, res.Items, res.Meta)`**, bukan `response.Success(c, code, message, res)`. `SuccessList` membongkar DTO `{Items, Meta}` di atas jadi envelope HTTP:
+```go
+return response.SuccessList(c, fiber.StatusOK, "Companies fetched successfully", res.Items, res.Meta)
+```
+menghasilkan:
+```json
+{
+  "code": 200, "status": "success", "message": "Companies fetched successfully",
+  "data": [ { "id": "...", "name": "..." } ],
+  "meta": { "pagination": { "page": 1, "limit": 20, "total": 57, "total_pages": 3 } }
+}
+```
+`data` adalah array item **langsung** (tanpa wrapper `{items, meta}`), dan `meta` jadi sibling top-level dari `data` — **BUKAN** `data.meta`. `meta.pagination` (bukan flat `meta.page`/`meta.limit`) sengaja dikelompokkan supaya metadata lain (request tracing, summary count) bisa ditambah ke `meta` di masa depan tanpa nabrak field pagination. Endpoint single-record (Get/Create/Update) TETAP pakai `response.Success` biasa — `data` object, tanpa key `meta` sama sekali (bukan `{}`).
 
 ## 3. Adapter Layer — Whitelist Sort & Search (WAJIB, Security)
 
@@ -89,6 +103,8 @@ func parsePagination(c fiber.Ctx) (page, limit int, sort, order string) {
 
 Endpoint List **WAJIB** mendokumentasikan `page`, `limit`, `sort`, `order` di Swagger (`enum` buat `sort` sesuai `SortMap` yang tersedia, `enum: [asc, desc]` buat `order`) dan Bruno. Catat eksplisit di docs bahwa `sort` invalid **fallback diam-diam ke default**, bukan `422` — supaya FE gak salah asumsi.
 
+Skema response 200 di Swagger **WAJIB** merefleksikan envelope `response.SuccessList` yang sebenarnya: `data` bertipe `array` (`items: $ref: '#/components/schemas/<Entity>Response'`), dan `meta.pagination` (`{page, limit, total, total_pages}`) sebagai property top-level `meta` di object response — **BUKAN** `data.items`/`data.meta`. Bruno `docs { }` contoh JSON-nya harus sinkron persis (lihat api-documentation.md untuk aturan schema reusable).
+
 Kalau entity-nya searchable (§ intro), `search` **WAJIB** ikut didokumentasikan sejajar 4 param di atas — sebutkan eksplisit kolom apa aja yang di-match (mis. "match `code` ATAU `name`") dan bahwa kosong = tanpa filter. Kalau entity TIDAK searchable, gak perlu nyantumin `search` sama sekali (jangan dokumentasikan param yang gak ada).
 
 ## 6. Checklist Review
@@ -98,5 +114,6 @@ Kalau entity-nya searchable (§ intro), `search` **WAJIB** ikut didokumentasikan
 - [ ] Adapter TIDAK PERNAH pass `Request.Sort` mentah ke `.Order()` — WAJIB lewat `SortMap` + `OrderClause`.
 - [ ] Entity punya kolom text human-readable (`name`/`code`/dst) → endpoint List-nya WAJIB `search`, lewat `Request.SearchClause(columns...)` dengan whitelist eksplisit (kecuali kasus lintas-table, §3 pengecualian). Entity TANPA kolom text boleh skip, tapi dijustifikasi di tech-spec.
 - [ ] `pagination.Query[T]` hanya dipanggil di Adapter layer, bukan Application.
-- [ ] DTO List Response pakai `pagination.Meta`, tidak ada `ListMeta` duplikat lokal.
-- [ ] Swagger + Bruno endpoint List mendokumentasikan `page`/`limit`/`sort`/`order` (+ `search` kalau applicable) + catatan fallback silent untuk `sort` invalid.
+- [ ] DTO List Response (application layer) pakai `pagination.Meta`, tidak ada `ListMeta` duplikat lokal.
+- [ ] Handler Transport layer serialize lewat `response.SuccessList(c, code, message, res.Items, res.Meta)` — bukan `response.Success` — supaya `data` jadi array langsung dan `meta.pagination` jadi sibling top-level, bukan `data.meta`.
+- [ ] Swagger + Bruno endpoint List mendokumentasikan `page`/`limit`/`sort`/`order` (+ `search` kalau applicable) + catatan fallback silent untuk `sort` invalid, DAN skema response-nya `data: array` + `meta.pagination` (bukan `data.items`/`data.meta`).
