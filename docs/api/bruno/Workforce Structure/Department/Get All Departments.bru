@@ -44,26 +44,28 @@ docs {
     "code": 200,
     "status": "success",
     "message": "Departments fetched successfully",
-    "data": {
-      "items": [
-        {
-          "id": "770e8400-e29b-41d4-a716-446655440002",
-          "company_id": "550e8400-e29b-41d4-a716-446655440000",
-          "code": "TI",
-          "name": "Divisi Teknologi Informasi",
-          "parent_id": null,
-          "is_active": true,
-          "created_at": "2026-07-24T09:00:00Z",
-          "updated_at": "2026-07-24T09:00:00Z"
-        }
-      ],
-      "meta": { "page": 1, "limit": 20, "total": 1 }
-    }
+    "data": [
+      {
+        "id": "770e8400-e29b-41d4-a716-446655440002",
+        "company_id": "550e8400-e29b-41d4-a716-446655440000",
+        "code": "TI",
+        "name": "Divisi Teknologi Informasi",
+        "parent_id": null,
+        "is_active": true,
+        "created_at": "2026-07-24T09:00:00Z",
+        "updated_at": "2026-07-24T09:00:00Z"
+      }
+    ],
+    "meta": { "pagination": { "page": 1, "limit": 20, "total": 1, "total_pages": 1 } }
   }
   ```
 
+  `data` SELALU array item langsung (bukan wrapper `{items, meta}`); `meta`
+  adalah sibling top-level dari `data`, isinya `meta.pagination` (`{page,
+  limit, total, total_pages}`) — bukan `data.meta`.
+
   Field nullable (bisa `null`): `parent_id`.
-  Field yang SELALU ada meski zero-value: `items` (`[]` kalau kosong, tidak
+  Field yang SELALU ada meski zero-value: `data` (`[]` kalau kosong, tidak
   pernah `null`), `is_active`, `created_at`, `updated_at`.
 
   **500 Internal Server Error**

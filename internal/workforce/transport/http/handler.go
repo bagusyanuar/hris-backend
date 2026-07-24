@@ -75,7 +75,7 @@ func (h *Handler) ListDepartments(c fiber.Ctx) error {
 	if err != nil {
 		return serverError(c, err, "Failed to fetch departments")
 	}
-	return response.Success(c, fiber.StatusOK, "Departments fetched successfully", res)
+	return response.SuccessList(c, fiber.StatusOK, "Departments fetched successfully", res.Items, res.Meta)
 }
 
 // TreeDepartments — GET /departments/tree, TANPA pagination. Dipakai FE Tabel
@@ -175,7 +175,7 @@ func (h *Handler) ListJobTitles(c fiber.Ctx) error {
 	if err != nil {
 		return serverError(c, err, "Failed to fetch job titles")
 	}
-	return response.Success(c, fiber.StatusOK, "Job titles fetched successfully", res)
+	return response.SuccessList(c, fiber.StatusOK, "Job titles fetched successfully", res.Items, res.Meta)
 }
 
 func (h *Handler) GetJobTitle(c fiber.Ctx) error {
@@ -269,7 +269,7 @@ func (h *Handler) ListJobPositions(c fiber.Ctx) error {
 	if err != nil {
 		return serverError(c, err, "Failed to fetch job positions")
 	}
-	return response.Success(c, fiber.StatusOK, "Job positions fetched successfully", res)
+	return response.SuccessList(c, fiber.StatusOK, "Job positions fetched successfully", res.Items, res.Meta)
 }
 
 // ChartJobPositions — GET /job-positions/chart, TANPA pagination (decision-log.md ADR-004).
