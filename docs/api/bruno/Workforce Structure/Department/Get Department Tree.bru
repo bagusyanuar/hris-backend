@@ -1,0 +1,67 @@
+meta {
+  name: Get Department Tree
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/departments/tree
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  Tujuan: ambil SEMUA Department aktif dalam scope caller TANPA
+  pagination, dipakai FE Tabel (nested row, expand/collapse) dan Bagan
+  (tree diagram).
+
+  Berbeda dari Get All Departments (paginated) — endpoint ini sengaja
+  EXEMPT dari pagination karena parent & anak bisa kepisah halaman kalau
+  paginated, ngerusak expand/collapse (decision-log.md ADR-007). FE
+  assembly tree sendiri dari `parent_id` (group by `parent_id`, root =
+  `parent_id: null`). Dataset per-company diasumsikan kecil.
+
+  Expected Responses:
+
+  **200 OK**
+  ```json
+  {
+    "code": 200,
+    "status": "success",
+    "message": "Department tree fetched successfully",
+    "data": [
+      {
+        "id": "770e8400-e29b-41d4-a716-446655440002",
+        "company_id": "550e8400-e29b-41d4-a716-446655440000",
+        "code": "TI",
+        "name": "Divisi Teknologi Informasi",
+        "parent_id": null,
+        "is_active": true,
+        "created_at": "2026-07-24T09:00:00Z",
+        "updated_at": "2026-07-24T09:00:00Z"
+      },
+      {
+        "id": "bb0e8400-e29b-41d4-a716-446655440006",
+        "company_id": "550e8400-e29b-41d4-a716-446655440000",
+        "code": "TI-DEV",
+        "name": "Departemen Pengembangan",
+        "parent_id": "770e8400-e29b-41d4-a716-446655440002",
+        "is_active": true,
+        "created_at": "2026-07-24T09:00:00Z",
+        "updated_at": "2026-07-24T09:00:00Z"
+      }
+    ]
+  }
+  ```
+
+  Field nullable (bisa `null`): `parent_id`.
+  Field yang SELALU ada meski zero-value: `data` (`[]` kalau kosong,
+  tidak pernah `null` — dan TIDAK punya `meta`, bukan paginated),
+  `is_active`, `created_at`, `updated_at`.
+
+  **500 Internal Server Error**
+}

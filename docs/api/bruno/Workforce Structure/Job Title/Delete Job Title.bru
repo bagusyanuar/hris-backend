@@ -1,0 +1,52 @@
+meta {
+  name: Delete Job Title
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/job-titles/:id
+  body: none
+  auth: bearer
+}
+
+params:path {
+  id: 880e8400-e29b-41d4-a716-446655440003
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  Tujuan: soft delete Job Title yang sudah tidak dipakai.
+
+  Soft delete Job Title (isi `deleted_at`, bukan hard delete).
+
+  Required Properties:
+  - id (path parameter)
+
+  Expected Responses:
+
+  **200 OK**
+  ```json
+  {
+    "code": 200,
+    "status": "success",
+    "message": "Job title deleted successfully",
+    "data": null
+  }
+  ```
+
+  **404 Not Found**
+  ```json
+  {
+    "code": 404,
+    "status": "error",
+    "message": "job title not found",
+    "errors": null
+  }
+  ```
+
+  **500 Internal Server Error**
+}

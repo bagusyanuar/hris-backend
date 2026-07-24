@@ -1,0 +1,103 @@
+meta {
+  name: Create Job Position
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-positions
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "department_id": "770e8400-e29b-41d4-a716-446655440002",
+    "job_title_id": "880e8400-e29b-41d4-a716-446655440003",
+    "name": "Manajer Pengembangan",
+    "reports_to_id": "990e8400-e29b-41d4-a716-446655440004",
+    "headcount_quota": 3
+  }
+}
+
+docs {
+  Tujuan: buat "kursi" jabatan aktual = kombinasi Department x Job Title.
+
+  Membuat Job Position baru. `company_id` TIDAK di-input client —
+  diturunkan otomatis dari `department_id` (decision-log.md ADR-001).
+  Department & Job Title wajib satu Company; `reports_to_id` (kalau
+  diisi) wajib posisi di Company yang sama dan tidak boleh membentuk
+  siklus reporting line.
+
+  Required Properties:
+  - department_id (uuid)
+  - job_title_id (uuid)
+  - name (max 150)
+
+  Optional Properties:
+  - reports_to_id (uuid, nullable — null berarti top position)
+  - headcount_quota (integer, min 1 — default 1 kalau tidak diisi, decision-log.md ADR-003)
+
+  Expected Responses:
+
+  **201 Created**
+  ```json
+  {
+    "code": 201,
+    "status": "success",
+    "message": "Job position created successfully",
+    "data": {
+      "id": "aa0e8400-e29b-41d4-a716-446655440005",
+      "company_id": "550e8400-e29b-41d4-a716-446655440000",
+      "department": {
+        "id": "770e8400-e29b-41d4-a716-446655440002",
+        "name": "Divisi Teknologi Informasi"
+      },
+      "job_title": {
+        "id": "880e8400-e29b-41d4-a716-446655440003",
+        "name": "Manajer"
+      },
+      "name": "Manajer Pengembangan",
+      "reports_to_id": "990e8400-e29b-41d4-a716-446655440004",
+      "headcount_quota": 3,
+      "is_active": true,
+      "created_at": "2026-07-24T09:00:00Z",
+      "updated_at": "2026-07-24T09:00:00Z"
+    }
+  }
+  ```
+
+  Field nullable (bisa `null`): `reports_to_id`.
+  Field yang SELALU ada meski zero-value: `department` & `job_title`
+  (objek preload `{id, name}`, decision-log.md ADR-006 — bukan
+  `department_id`/`job_title_id` string lagi), `headcount_quota`,
+  `is_active`, `created_at`, `updated_at`.
+
+  **400 Bad Request** — invalid JSON payload
+
+  **404 Not Found** — department_id, job_title_id, atau reports_to_id tidak dikenal
+  ```json
+  {
+    "code": 404,
+    "status": "error",
+    "message": "department not found",
+    "errors": null
+  }
+  ```
+
+  **422 Unprocessable Entity** — validation failed / department & job_title beda company / reports_to_id beda company / reporting cycle
+  ```json
+  {
+    "code": 422,
+    "status": "error",
+    "message": "reports-to position belongs to a different company",
+    "errors": null
+  }
+  ```
+
+  **500 Internal Server Error**
+}

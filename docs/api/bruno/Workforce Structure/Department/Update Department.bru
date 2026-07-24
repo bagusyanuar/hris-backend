@@ -1,0 +1,97 @@
+meta {
+  name: Update Department
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/departments/:id
+  body: json
+  auth: bearer
+}
+
+params:path {
+  id: 770e8400-e29b-41d4-a716-446655440002
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Divisi Teknologi Informasi & Digital"
+  }
+}
+
+docs {
+  Tujuan: partial update Department — field yang tidak dikirim tidak
+  diubah. Mengubah `parent_id` memicu validasi ulang company match + cycle
+  detection.
+
+  Mengubah data Department yang sudah ada.
+
+  Optional Properties (partial update, kirim yang mau diubah saja):
+  - code (max 20)
+  - name (max 150)
+  - parent_id (uuid, nullable)
+  - is_active (boolean)
+
+  Expected Responses:
+
+  **200 OK**
+  ```json
+  {
+    "code": 200,
+    "status": "success",
+    "message": "Department updated successfully",
+    "data": {
+      "id": "770e8400-e29b-41d4-a716-446655440002",
+      "company_id": "550e8400-e29b-41d4-a716-446655440000",
+      "code": "TI",
+      "name": "Divisi Teknologi Informasi & Digital",
+      "parent_id": null,
+      "is_active": true,
+      "created_at": "2026-07-24T09:00:00Z",
+      "updated_at": "2026-07-24T10:00:00Z"
+    }
+  }
+  ```
+
+  Field nullable (bisa `null`): `parent_id`.
+  Field yang SELALU ada meski zero-value: `is_active`, `created_at`, `updated_at`.
+
+  **400 Bad Request** — invalid JSON payload
+
+  **404 Not Found**
+  ```json
+  {
+    "code": 404,
+    "status": "error",
+    "message": "department not found",
+    "errors": null
+  }
+  ```
+
+  **409 Conflict** — code sudah dipakai department lain dalam Company yang sama
+  ```json
+  {
+    "code": 409,
+    "status": "error",
+    "message": "department code already registered in this company",
+    "errors": null
+  }
+  ```
+
+  **422 Unprocessable Entity** — validation failed / parent_id beda company / cycle
+  ```json
+  {
+    "code": 422,
+    "status": "error",
+    "message": "hierarchy cycle detected",
+    "errors": null
+  }
+  ```
+
+  **500 Internal Server Error**
+}

@@ -1,0 +1,64 @@
+meta {
+  name: Get Department by ID
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/departments/:id
+  body: none
+  auth: bearer
+}
+
+params:path {
+  id: 770e8400-e29b-41d4-a716-446655440002
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  Tujuan: ambil detail satu Department buat form edit/detail view.
+
+  Mengambil detail Department berdasarkan ID.
+
+  Required Properties:
+  - id (path parameter)
+
+  Expected Responses:
+
+  **200 OK**
+  ```json
+  {
+    "code": 200,
+    "status": "success",
+    "message": "Department fetched successfully",
+    "data": {
+      "id": "770e8400-e29b-41d4-a716-446655440002",
+      "company_id": "550e8400-e29b-41d4-a716-446655440000",
+      "code": "TI",
+      "name": "Divisi Teknologi Informasi",
+      "parent_id": null,
+      "is_active": true,
+      "created_at": "2026-07-24T09:00:00Z",
+      "updated_at": "2026-07-24T09:00:00Z"
+    }
+  }
+  ```
+
+  Field nullable (bisa `null`): `parent_id`.
+  Field yang SELALU ada meski zero-value: `is_active`, `created_at`, `updated_at`.
+
+  **404 Not Found**
+  ```json
+  {
+    "code": 404,
+    "status": "error",
+    "message": "department not found",
+    "errors": null
+  }
+  ```
+
+  **500 Internal Server Error**
+}

@@ -1,0 +1,53 @@
+# Architecture Decision Records (ADR): Workforce Structure Module (v1.0.0)
+
+## ADR-001: `company_id` Didenormalisasi ke `job_positions` (Bukan Cuma Derive via JOIN ke Department)
+- **Date:** 2026-07-24
+- **Status:** Accepted
+- **Context:** `JobPosition` selalu terikat ke satu Company lewat `Department`, jadi secara teoritis `company_id` bisa didapat cuma dengan JOIN `departments`. Tapi [scoping-convention.md](../../../.agents/rules/scoping-convention.md) §1 & §3 mewajibkan setiap entity operasional (kelas Company-owned) punya kolom `company_id` langsung — supaya filter scope di query boundary (`WHERE company_id IN (...)`) tidak butuh JOIN tambahan di *setiap* query baca (List, Chart, dst — makin berat kalau nanti Employee ikut query `job_positions` volume tinggi).
+- **Decision:** `job_positions.company_id` kolom fisik NOT NULL, diisi otomatis dari `department.CompanyID` saat create (client tidak input manual — lihat tech-spec §6.3 poin 1). Divalidasi tetap konsisten: `department.CompanyID == job_title.CompanyID` (`ErrJobPositionCompanyMismatch`) sebelum disimpan.
+- **Consequence:** Data sedikit redundan (company_id muncul di 3 tabel: departments, job_titles, job_positions) tapi query scope-filter jadi seragam & cepat di semua entity tanpa JOIN. Trade-off: kalau `Department` pindah company di masa depan (belum ada di scope — Department tidak pernah pindah PT dalam desain ini), semua `job_positions` anaknya harus ikut di-update — belum jadi masalah karena operasi itu tidak ada di acceptance criteria manapun.
+
+## ADR-002: Cycle Detection — Application-Layer Walk-Up, Bukan Recursive CTE
+- **Date:** 2026-07-24
+- **Status:** Accepted
+- **Context:** PRD §4 mewajibkan anti-siklus untuk `Department.ParentID` (implisit dari "hierarki valid") dan `JobPosition.ReportsToID` (eksplisit). Dua pendekatan: (a) recursive CTE (`WITH RECURSIVE`) di adapter layer — satu query DB yang jalan sisi server, efisien untuk hierarki dalam; (b) walk-up loop di application layer — panggil `FindParentID` berulang sampai ketemu root atau ketemu diri sendiri.
+- **Decision:** Pilih (b), walk-up loop di application layer dengan `maxDepth` guard (100) sebagai jaring pengaman data korup — lihat tech-spec §7.2. Alasan: (1) volume & depth org chart realistis kecil (perusahaan menengah-besar jarang > 10-15 level hierarki), jadi selisih performa vs CTE tidak signifikan; (2) logic cycle-detection jadi pure Go, gampang di-unit-test tanpa perlu spin up Postgres (selaras [coding-convention.md](../../../.agents/rules/coding-convention.md) §7 — WAJIB unit test business rule domain); (3) satu implementasi (`domain/hierarchy.go`) dipakai bersama oleh Department DAN JobPosition, tanpa duplikasi SQL recursive per entity.
+- **Consequence:** Worst-case O(depth) round-trip DB per validasi (bukan 1 query). Diterima sekarang; revisit ke recursive CTE kalau depth org chart di lapangan ternyata jauh lebih dalam dari asumsi (belum ada bukti demikian, YAGNI).
+
+## ADR-003: `headcount_quota` Default ke `1` (Bukan Tolak) Kalau Tidak Diisi
+- **Date:** 2026-07-24
+- **Status:** Accepted
+- **Context:** PRD §4 acceptance criteria sengaja menyerahkan pilihan ke tech-spec: *"Given create Position, When tanpa headcount_quota, Then default sesuai aturan (mis. 1) atau tolak"*. Kode legacy (`internal/domain/organization/entity.go` fungsi `NewJobPosition`) sudah berperilaku default-ke-1 (`if headcountQuota < 1 { headcountQuota = 1 }`).
+- **Decision:** Default `1` jika tidak diisi atau diisi `< 1` — bukan reject `422`. Konsisten dengan perilaku kode legacy (tidak ada alasan bisnis untuk mengubahnya) dan lebih ramah UX (Admin sering create Position dulu, isi quota belakangan pas planning headcount matang).
+- **Consequence:** Client yang lupa isi `headcount_quota` tidak dapat error — kalau ada kebutuhan bisnis "quota WAJIB eksplisit diisi", perlu keputusan ulang (belum ada sinyal itu di PRD manapun).
+
+## ADR-004: `GET /job-positions/chart` — Endpoint Terpisah TANPA Pagination
+- **Date:** 2026-07-24
+- **Status:** Accepted
+- **Context:** [pagination-convention.md](../../../.agents/rules/pagination-convention.md) mewajibkan semua endpoint List/FindAll paginated. Tapi kebutuhan "Organization Chart" (PRD §Catatan FE poin 2) butuh SELURUH `job_positions` aktif sekaligus supaya FE bisa bangun tree lengkap dari `reports_to_id` — satu halaman paginated (mis. 20 row) akan motong tree jadi tidak lengkap (parent di halaman 2 tidak kebaca saat render halaman 1).
+- **Decision:** Endpoint terpisah `GET /api/v1/job-positions/chart` yang EXEMPT dari pagination, mengembalikan semua row aktif dalam scope company caller. `GET /api/v1/job-positions` (list biasa, tabel/manajemen data) tetap paginated seperti biasa — dua use-case beda (browse/manage data vs render tree utuh), pola serupa keputusan nested-branches organization ([ADR-006 organization](../organization/decision-log.md#adr-006-nested-branches-di-get-companies--batch-query-manual-bukan-gorm-preload)).
+- **Consequence:** Dataset per-company diasumsikan kecil (ratusan row, bukan ribuan) — full scan tanpa LIMIT diterima di scope ini. Kalau nanti satu Company bisa punya ribuan Job Position (belum ada sinyal itu), perlu strategi lain (mis. lazy-load per-level, bukan full tree sekaligus).
+
+## ADR-005: Bounded Context Baru (`internal/workforce/`), Kode Legacy Ditulis Ulang — Bukan Dipindah Mentah
+- **Date:** 2026-07-24
+- **Status:** Accepted
+- **Context:** PRD §5 & catatan gap di tech-spec §1: kode existing 3 pilar ini di `internal/domain/organization/` pakai pola arsitektur lama (layer-first, bukan domain-first) DAN tidak punya `company_id`, sentinel error per-entity, atau cycle detection sama sekali — persis seperti kondisi `organization` sebelum split (lihat catatan gap di [tech-spec organization](../organization/tech-spec.md) §1).
+- **Decision:** `internal/workforce/` dibuat sebagai context baru dari nol mengikuti pola domain-first (sama seperti `internal/organization/` dibuat baru, bukan me-refactor `internal/domain/organization/` di tempat). Struct lama (`Department`, `JobTitle`, `JobPosition` di `internal/domain/organization/entity.go`) dipakai sebagai referensi field/naming awal saja. Setelah context baru live dan wiring (`di/wire.go`, router) dipindah, folder lama (`internal/domain/organization/`, `internal/application/organization/`, `internal/interfaces/http/organization/`) dihapus dalam commit terpisah (bukan digabung sama commit "add workforce module" — selaras [commit-convention.md](../../../.agents/rules/commit-convention.md) §1 atomik).
+- **Consequence:** Tidak ada migrasi data mengalir otomatis dari struktur lama (kalau ada data existing di tabel lama — perlu dicek saat implementasi apakah tabel `departments`/`job_titles`/`job_positions` lama sudah punya data produksi; kalau ada, migration SQL baru butuh langkah backfill `company_id`, bukan cuma `CREATE TABLE`). Item ini WAJIB dicek ulang di awal `execute-domain`, sebelum nulis migration SQL.
+- **Resolusi (2026-07-24):** Dicek — tidak ada migration SQL manapun (`migrations/0000*`) yang pernah membuat tabel `departments`/`job_titles`/`job_positions` versi lama, jadi tidak ada data produksi yang berisiko hilang. Legacy folder (`internal/domain/organization/`, `internal/application/organization/`, `internal/interfaces/http/organization/`, `internal/infrastructure/repository/organization_postgres.go` + model terkait) dihapus di commit terpisah setelah `internal/workforce/` live dan `di/wire.go`/`di/api.go` diperbarui, `go build ./...` + `go test ./...` lulus.
+
+## ADR-006: `JobPositionResponse` Embed `department`/`job_title` sebagai Objek `{id, name}` — Batch Lookup, Bukan Raw ID
+- **Date:** 2026-07-24
+- **Status:** Accepted
+- **Context:** Response awal `JobPositionResponse` cuma punya `department_id`/`job_title_id` (raw UUID string). FE (tabel Job Position, form edit) butuh nama Department/Job Title buat ditampilkan — kalau cuma UUID, FE kepaksa request terpisah per row (N+1 dari sisi FE) atau maintain cache id→name sendiri.
+- **Decision:** `JobPositionResponse` embed `department` & `job_title` sebagai objek preload ringan `{id, name}` (`JobPositionRef`), gantiin field flat `department_id`/`job_title_id`. Diisi via `DepartmentRepository.FindNamesByIDs`/`JobTitleRepository.FindNamesByIDs` — batch `WHERE id IN (...)` di Application Layer, pola sama persis kayak [ADR-006 organization](../organization/decision-log.md#adr-006-nested-branches-di-get-companies--batch-query-manual-bukan-gorm-preload) (read-model composition, BUKAN perubahan aggregate — `Department`/`JobTitle` tetap repository terpisah dari `JobPosition`, gak ada foreign-key embed di domain entity).
+  - Single-record endpoint (Create/Get/Update) cukup 1 query per relasi (`FindByID`, udah kepanggil buat validasi juga).
+  - Multi-record endpoint (List/Chart) pakai `jobPositionNamesBatch` helper — kumpulin `department_id`/`job_title_id` dari seluruh hasil, SATU query batch per relasi (bukan N+1 per row).
+- **Consequence:** Payload request (create/update) TETAP pakai `department_id`/`job_title_id` string flat — cuma response yang berubah bentuk, jangan disamain. `reports_to_id` SENGAJA TIDAK di-embed jadi objek (tetap raw UUID) — keputusan sadar scope kecil, kalau FE butuh nama posisi atasan juga, itu perluasan terpisah (belum diminta).
+
+## ADR-007: `GET /departments/tree` — Endpoint Terpisah TANPA Pagination, Sama Alasan Job Position Chart
+- **Date:** 2026-07-24
+- **Status:** Accepted
+- **Context:** FE render Department dalam 2 mode: Tabel (nested row, expand/collapse indented by hierarki) dan Bagan (tree diagram) — dua-duanya butuh SELURUH Department sekaligus buat assembly tree dari `parent_id`. Kalau pakai `GET /departments` yang paginated, parent bisa nongol di halaman 1 sementara anaknya kepotong ke halaman 2 — expand/collapse rusak (user expand row, anaknya belum ke-fetch).
+- **Decision:** Endpoint terpisah `GET /api/v1/departments/tree`, EXEMPT dari pagination-convention.md, mengembalikan semua Department aktif dalam scope company caller (flat array + `parent_id`, BUKAN nested `children: []`). Pola identik ADR-004 (`job-positions/chart`) — flat lebih fleksibel buat FE (bisa dipakai render tree ATAU tabel datar tanpa transformasi balik) dan gak butuh recursive CTE/tree-assembly di backend. `GET /departments` (paginated) tetap ada buat use-case lain yang butuh manajemen data biasa.
+- **Consequence:** FE WAJIB assembly tree sendiri (group by `parent_id`, root = `parent_id: null`) — bukan tanggung jawab backend. Client-side pagination ("Baris per halaman") juga jadi tanggung jawab FE atas dataset yang udah di-fetch utuh, bukan server-side page/limit.

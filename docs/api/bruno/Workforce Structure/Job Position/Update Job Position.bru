@@ -1,0 +1,101 @@
+meta {
+  name: Update Job Position
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/api/v1/job-positions/:id
+  body: json
+  auth: bearer
+}
+
+params:path {
+  id: aa0e8400-e29b-41d4-a716-446655440005
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Manajer Pengembangan Senior",
+    "headcount_quota": 4
+  }
+}
+
+docs {
+  Tujuan: partial update Job Position — field yang tidak dikirim tidak
+  diubah. Mengubah `department_id`/`job_title_id` memicu validasi ulang
+  company match; mengubah `reports_to_id` memicu validasi company match +
+  cycle detection.
+
+  Mengubah data Job Position yang sudah ada.
+
+  Optional Properties (partial update, kirim yang mau diubah saja):
+  - department_id (uuid)
+  - job_title_id (uuid)
+  - name (max 150)
+  - reports_to_id (uuid, nullable)
+  - headcount_quota (integer, min 1)
+  - is_active (boolean)
+
+  Expected Responses:
+
+  **200 OK**
+  ```json
+  {
+    "code": 200,
+    "status": "success",
+    "message": "Job position updated successfully",
+    "data": {
+      "id": "aa0e8400-e29b-41d4-a716-446655440005",
+      "company_id": "550e8400-e29b-41d4-a716-446655440000",
+      "department": {
+        "id": "770e8400-e29b-41d4-a716-446655440002",
+        "name": "Divisi Teknologi Informasi"
+      },
+      "job_title": {
+        "id": "880e8400-e29b-41d4-a716-446655440003",
+        "name": "Manajer"
+      },
+      "name": "Manajer Pengembangan Senior",
+      "reports_to_id": "990e8400-e29b-41d4-a716-446655440004",
+      "headcount_quota": 4,
+      "is_active": true,
+      "created_at": "2026-07-24T09:00:00Z",
+      "updated_at": "2026-07-24T10:00:00Z"
+    }
+  }
+  ```
+
+  Field nullable (bisa `null`): `reports_to_id`.
+  Field yang SELALU ada meski zero-value: `department` & `job_title`
+  (objek preload `{id, name}`, decision-log.md ADR-006), `headcount_quota`,
+  `is_active`, `created_at`, `updated_at`.
+
+  **400 Bad Request** — invalid JSON payload
+
+  **404 Not Found** — job position, department_id, atau job_title_id tidak dikenal
+  ```json
+  {
+    "code": 404,
+    "status": "error",
+    "message": "job position not found",
+    "errors": null
+  }
+  ```
+
+  **422 Unprocessable Entity** — validation failed / company mismatch / reporting cycle
+  ```json
+  {
+    "code": 422,
+    "status": "error",
+    "message": "hierarchy cycle detected",
+    "errors": null
+  }
+  ```
+
+  **500 Internal Server Error**
+}

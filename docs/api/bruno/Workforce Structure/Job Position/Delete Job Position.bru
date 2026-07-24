@@ -1,0 +1,54 @@
+meta {
+  name: Delete Job Position
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/job-positions/:id
+  body: none
+  auth: bearer
+}
+
+params:path {
+  id: aa0e8400-e29b-41d4-a716-446655440005
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  Tujuan: soft delete Job Position yang sudah tidak dipakai.
+
+  Soft delete Job Position (isi `deleted_at`, bukan hard delete). TIDAK
+  mem-validasi apakah masih ada Job Position lain yang `reports_to_id`
+  menunjuk ke sini (gap eksplisit, tech-spec.md §6.3 poin 6).
+
+  Required Properties:
+  - id (path parameter)
+
+  Expected Responses:
+
+  **200 OK**
+  ```json
+  {
+    "code": 200,
+    "status": "success",
+    "message": "Job position deleted successfully",
+    "data": null
+  }
+  ```
+
+  **404 Not Found**
+  ```json
+  {
+    "code": 404,
+    "status": "error",
+    "message": "job position not found",
+    "errors": null
+  }
+  ```
+
+  **500 Internal Server Error**
+}

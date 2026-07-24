@@ -1,9 +1,9 @@
 ---
 module: Workforce Structure
-version: 1.0.0
-status: Draft
+version: 1.2.0
+status: Approved
 owner: bagusyanuar
-updated: 2026-07-23 13:46:17
+updated: 2026-07-24
 depends_on: [organization@2.0.0]
 consumed_by: [employee]
 ---
@@ -61,7 +61,7 @@ Menyediakan kerangka organisasi *position-based* yang stabil: reporting line tak
 | **HR Manager** | ✅ | ✅ (dalam scope Company-nya) |
 | **Employee** | ✅ (lihat bagan) | ❌ |
 
-> Scoping per `company_id` = tanggung jawab RBAC. Modul ini sediakan kolomnya.
+> Scoping per `company_id` = tanggung jawab RBAC. Modul ini sediakan kolomnya. FE kirim PT/cabang aktif (hasil pilih di workspace switcher) via header `X-Company-Id`/`X-Branch-Id`, divalidasi server-side terhadap assignment asli user — bukan query param, lihat [scoping-convention.md](../../.agents/rules/scoping-convention.md) §3.1.
 
 ## 4. Kriteria Penerimaan (Given-When-Then)
 
@@ -91,7 +91,7 @@ Menyediakan kerangka organisasi *position-based* yang stabil: reporting line tak
 - **`company_id` NOT NULL** di Department (turun ke Position lewat Department). Migrasi + backfill wajib.
 - **Sentinel error:** `ErrDepartmentNotFound`, `ErrJobTitleNotFound`, `ErrJobPositionNotFound`, `ErrReportingCycle` — [persistence-convention.md](../../.agents/rules/persistence-convention.md) §3.
 - **UUID** generate di domain constructor — [uuid-generation.md](../../.agents/rules/uuid-generation.md).
-- **Tier dokumen:** **Sedang** (relasi antar-entity + hierarki + depend Organization) → butuh `tech-spec.md`. `decision-log.md` kalau ada keputusan non-trivial (mis. algoritma cycle detection).
+- **Tier dokumen:** **Sedang** (relasi antar-entity + hierarki + depend Organization) → butuh `tech-spec.md`. `decision-log.md` kalau ada keputusan non-trivial (mis. algoritma cycle detection). `user-stories.md` bukan wajib tier ini, tapi dibuat juga atas permintaan eksplisit — dua entity self-referencing (Department/JobPosition) dianggap cukup berisiko buat divisualisasikan lewat sequence diagram.
 
 ## 6. Dependencies
 - **Depends on:** `organization@2.0.0` — konsumsi `company_id` untuk scope Department (Organization §Company).
@@ -145,5 +145,9 @@ Aturan: kombinasi 1 Department + 1 Job Title; `reports_to_id` → Position atasa
 1. **Form Create Job Position:** butuh dropdown `Department` (`GET /workforce/departments`) & `Job Title` (`GET /workforce/job-titles`). `Reports To` = autocomplete dari `GET /workforce/job-positions`.
 2. **Organization Chart:** render `job_positions` via `reports_to_id`. Root = `reports_to_id = null`.
 3. **`is_active`:** default API balikin yang aktif; yang nonaktif bisa di-grey-out/sembunyikan.
+4. **Search:** ketiga endpoint List (`departments`, `job-titles`, `job-positions`) dukung query param `search` opsional — match `code` ATAU `name` (Department/Job Title), `name` saja (Job Position, gak punya `code`). Case-insensitive substring, dipakai buat autocomplete di poin 1.
+5. **Workspace switcher (PT/cabang aktif):** kirim header `X-Company-Id`/`X-Branch-Id` sesuai pilihan switcher, bukan query param — lihat catatan §3.
+6. **Department Tabel (nested row) & Bagan (tree diagram):** pakai `GET /workforce/departments/tree` (TANPA pagination, beda dari `GET /workforce/departments` yang paginated) — FE assembly tree dari `parent_id` sendiri (group by `parent_id`, root = `parent_id: null`), dipakai buat expand/collapse row bertingkat maupun render diagram. Pagination server-side gak cocok buat expand/collapse (parent & anak bisa kepisah halaman), jadi endpoint ini sengaja unpaginated + client-side pagination di FE.
+7. **`department`/`job_title` di response Job Position:** bukan lagi `department_id`/`job_title_id` string doang — sekarang objek `{id, name}` (preload, hindari FE nampilin raw UUID di tabel/form). `id` di dalamnya tetap dipakai buat submit form edit.
 
 > Path endpoint di atas ilustratif (`/workforce/...`) — final URL ditetapkan saat scaffold API docs.

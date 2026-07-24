@@ -1,0 +1,100 @@
+meta {
+  name: Update Job Title
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/job-titles/:id
+  body: json
+  auth: bearer
+}
+
+params:path {
+  id: 880e8400-e29b-41d4-a716-446655440003
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Manajer Senior",
+    "grade_level": 8
+  }
+}
+
+docs {
+  Tujuan: partial update Job Title — field yang tidak dikirim tidak
+  diubah.
+
+  Mengubah data Job Title yang sudah ada.
+
+  Optional Properties (partial update, kirim yang mau diubah saja):
+  - code (max 20)
+  - name (max 100)
+  - grade_level (integer)
+  - is_active (boolean)
+
+  Expected Responses:
+
+  **200 OK**
+  ```json
+  {
+    "code": 200,
+    "status": "success",
+    "message": "Job title updated successfully",
+    "data": {
+      "id": "880e8400-e29b-41d4-a716-446655440003",
+      "company_id": "550e8400-e29b-41d4-a716-446655440000",
+      "code": "MGR",
+      "name": "Manajer Senior",
+      "grade_level": 8,
+      "is_active": true,
+      "created_at": "2026-07-24T09:00:00Z",
+      "updated_at": "2026-07-24T10:00:00Z"
+    }
+  }
+  ```
+
+  Field nullable (bisa `null`): tidak ada.
+  Field yang SELALU ada meski zero-value: `grade_level`, `is_active`,
+  `created_at`, `updated_at`.
+
+  **400 Bad Request** — invalid JSON payload
+
+  **404 Not Found**
+  ```json
+  {
+    "code": 404,
+    "status": "error",
+    "message": "job title not found",
+    "errors": null
+  }
+  ```
+
+  **409 Conflict** — code sudah dipakai job title lain dalam Company yang sama
+  ```json
+  {
+    "code": 409,
+    "status": "error",
+    "message": "job title code already registered in this company",
+    "errors": null
+  }
+  ```
+
+  **422 Unprocessable Entity**
+  ```json
+  {
+    "code": 422,
+    "status": "error",
+    "message": "Validation failed",
+    "errors": {
+      "code": ["Kolom code maksimal 20 karakter."]
+    }
+  }
+  ```
+
+  **500 Internal Server Error**
+}

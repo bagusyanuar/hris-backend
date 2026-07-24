@@ -1,0 +1,1469 @@
+openapi: 3.0.0
+info:
+  title: Workforce Structure API
+  version: 1.2.0
+  description: >
+    API untuk modul Workforce Structure — 3 pilar bagan organisasi internal
+    *position-based*: Department (unit kerja, hierarki), Job Title
+    (grade/pangkat per-PT), Job Position (kursi = Department x Job Title,
+    reporting line, headcount). Lihat docs/PRD/workforce-structure.md dan
+    docs/technical/workforce-structure/tech-spec.md. Semua entity di modul
+    ini Company-owned — `company_id` divalidasi eksis di modul Organization
+    (lihat swagger/organization.yaml) via Application Service, bukan
+    repository langsung. v1.1.0: tiap endpoint List (`departments`,
+    `job-titles`, `job-positions`) tambah query param `search` opsional
+    (match `code` ATAU `name`, kecuali Job Position yang gak punya `code`).
+    v1.2.0: tambah `GET /departments/tree` (TANPA pagination, dipakai FE
+    Tabel nested-row + Bagan, decision-log.md ADR-007). `JobPositionResponse`
+    sekarang embed `department`/`job_title` sebagai objek `{id, name}`
+    (ganti field flat `department_id`/`job_title_id`) — decision-log.md
+    ADR-006.
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    # Field WAJIB ada di tiap response (bukan berarti non-null — cek `nullable`
+    # per field). Field yang gak listed di `required` = bisa di-omit (tidak
+    # dipakai di API ini sekarang, semua field DTO selalu di-serialize).
+    DepartmentResponse:
+      type: object
+      required: [id, company_id, code, name, parent_id, is_active, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        company_id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Null berarti department ini root (tidak punya parent).
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    DepartmentListResponse:
+      type: object
+      required: [items, meta]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DepartmentResponse'
+          description: SELALU array (`[]` kalau kosong) — TIDAK PERNAH `null`.
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    JobTitleResponse:
+      type: object
+      required: [id, company_id, code, name, grade_level, is_active, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        company_id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        grade_level:
+          type: integer
+          description: Makin tinggi = pangkat makin tinggi. Tidak ada batasan range di scope ini.
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    JobTitleListResponse:
+      type: object
+      required: [items, meta]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobTitleResponse'
+          description: SELALU array (`[]` kalau kosong) — TIDAK PERNAH `null`.
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    JobPositionRef:
+      type: object
+      required: [id, name]
+      description: Preload ringan — dipakai embed `department`/`job_title` di JobPositionResponse (decision-log.md ADR-006), FE gak perlu request terpisah buat nampilin nama.
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    JobPositionResponse:
+      type: object
+      required: [id, company_id, department, job_title, name, reports_to_id, headcount_quota, is_active, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        company_id:
+          type: string
+          format: uuid
+          description: Denormalized dari department_id, bukan input client langsung.
+        department:
+          $ref: '#/components/schemas/JobPositionRef'
+        job_title:
+          $ref: '#/components/schemas/JobPositionRef'
+        name:
+          type: string
+        reports_to_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Null berarti posisi ini top position (root org chart).
+        headcount_quota:
+          type: integer
+          description: Minimal 1 — default 1 kalau tidak diisi saat create/update.
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    JobPositionListResponse:
+      type: object
+      required: [items, meta]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobPositionResponse'
+          description: SELALU array (`[]` kalau kosong) — TIDAK PERNAH `null`.
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    PaginationMeta:
+      type: object
+      required: [page, limit, total]
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+          format: int64
+
+paths:
+  /api/v1/departments:
+    post:
+      summary: Create Department
+      operationId: createDepartment
+      description: >
+        Buat unit kerja baru dalam satu Company, opsional dinested di bawah
+        parent department (org tree). `company_id` divalidasi eksis via
+        Organization Application Service; `parent_id` (kalau diisi) wajib
+        milik Company yang sama dan tidak boleh membentuk siklus hierarki.
+      tags: [Department]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [company_id, code, name]
+              properties:
+                company_id:
+                  type: string
+                  format: uuid
+                  example: "550e8400-e29b-41d4-a716-446655440000"
+                code:
+                  type: string
+                  maxLength: 20
+                  example: "TI"
+                name:
+                  type: string
+                  maxLength: 150
+                  example: "Divisi Teknologi Informasi"
+                parent_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                  example: "660e8400-e29b-41d4-a716-446655440001"
+      responses:
+        '201':
+          description: Department created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/DepartmentResponse'
+              example:
+                code: 201
+                status: success
+                message: Department created successfully
+                data:
+                  id: "770e8400-e29b-41d4-a716-446655440002"
+                  company_id: "550e8400-e29b-41d4-a716-446655440000"
+                  code: "TI"
+                  name: "Divisi Teknologi Informasi"
+                  parent_id: "660e8400-e29b-41d4-a716-446655440001"
+                  is_active: true
+                  created_at: "2026-07-24T09:00:00Z"
+                  updated_at: "2026-07-24T09:00:00Z"
+        '400':
+          description: Bad Request (Invalid JSON payload)
+          content:
+            application/json:
+              example:
+                code: 400
+                status: "error"
+                message: "Invalid JSON payload"
+                errors: null
+        '404':
+          description: Not Found — company_id atau parent_id tidak dikenal
+          content:
+            application/json:
+              example:
+                code: 404
+                status: "error"
+                message: "company not found"
+                errors: null
+        '409':
+          description: Conflict — code sudah dipakai department lain dalam Company yang sama
+          content:
+            application/json:
+              example:
+                code: 409
+                status: "error"
+                message: "department code already registered in this company"
+                errors: null
+        '422':
+          description: Unprocessable Entity — Validation failed / parent_id beda company
+          content:
+            application/json:
+              example:
+                code: 422
+                status: "error"
+                message: "Validation failed"
+                errors:
+                  company_id: ["Kolom company_id wajib diisi."]
+                  code: ["Kolom code wajib diisi."]
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              example:
+                code: 500
+                status: "error"
+                message: "Failed to create department"
+                errors: null
+    get:
+      summary: List Departments
+      operationId: listDepartments
+      description: >
+        Browse semua Department (paginated) lintas Company — filter scope
+        per-Company baru aktif setelah modul RBAC landing (staged, lihat
+        scoping-convention.md §4). Dipakai buat halaman manajemen data;
+        FE bangun tree dari `parent_id` sendiri di sisi client.
+      tags: [Department]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [code, name, created_at, updated_at]
+            default: created_at
+        - in: query
+          name: order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+        - in: query
+          name: search
+          description: Opsional. Match `code` ATAU `name` (case-insensitive substring). Kosong = tanpa filter.
+          schema:
+            type: string
+            example: "TI"
+      responses:
+        '200':
+          description: Departments fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/DepartmentListResponse'
+              example:
+                code: 200
+                status: success
+                message: Departments fetched successfully
+                data:
+                  items:
+                    - id: "770e8400-e29b-41d4-a716-446655440002"
+                      company_id: "550e8400-e29b-41d4-a716-446655440000"
+                      code: "TI"
+                      name: "Divisi Teknologi Informasi"
+                      parent_id: null
+                      is_active: true
+                      created_at: "2026-07-24T09:00:00Z"
+                      updated_at: "2026-07-24T09:00:00Z"
+                  meta:
+                    page: 1
+                    limit: 20
+                    total: 1
+        '500':
+          description: Internal Server Error
+
+  /api/v1/departments/tree:
+    get:
+      summary: Get Full Department Tree
+      operationId: getDepartmentsTree
+      description: >
+        Kembalikan SEMUA Department aktif dalam scope caller TANPA
+        pagination, dipakai FE Tabel (nested row, expand/collapse) dan
+        Bagan (tree diagram) — dua-duanya assembly tree sendiri dari
+        `parent_id` (root = `parent_id: null`). Endpoint terpisah dari
+        `GET /departments` yang paginated — pagination server-side gak
+        cocok buat expand/collapse karena parent & anak bisa kepisah
+        halaman (decision-log.md ADR-007). Dataset per-company diasumsikan
+        kecil (ratusan row).
+      tags: [Department]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Department tree fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DepartmentResponse'
+                    description: SELALU array (`[]` kalau kosong) — TIDAK PERNAH `null`. TANPA `meta` (bukan paginated).
+              example:
+                code: 200
+                status: success
+                message: Department tree fetched successfully
+                data:
+                  - id: "770e8400-e29b-41d4-a716-446655440002"
+                    company_id: "550e8400-e29b-41d4-a716-446655440000"
+                    code: "TI"
+                    name: "Divisi Teknologi Informasi"
+                    parent_id: null
+                    is_active: true
+                    created_at: "2026-07-24T09:00:00Z"
+                    updated_at: "2026-07-24T09:00:00Z"
+                  - id: "bb0e8400-e29b-41d4-a716-446655440006"
+                    company_id: "550e8400-e29b-41d4-a716-446655440000"
+                    code: "TI-DEV"
+                    name: "Departemen Pengembangan"
+                    parent_id: "770e8400-e29b-41d4-a716-446655440002"
+                    is_active: true
+                    created_at: "2026-07-24T09:00:00Z"
+                    updated_at: "2026-07-24T09:00:00Z"
+        '500':
+          description: Internal Server Error
+
+  /api/v1/departments/{id}:
+    get:
+      summary: Get Department by ID
+      operationId: getDepartmentById
+      description: Ambil detail satu Department. Dipakai buat form edit / detail view.
+      tags: [Department]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Department fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/DepartmentResponse'
+              example:
+                code: 200
+                status: success
+                message: Department fetched successfully
+                data:
+                  id: "770e8400-e29b-41d4-a716-446655440002"
+                  company_id: "550e8400-e29b-41d4-a716-446655440000"
+                  code: "TI"
+                  name: "Divisi Teknologi Informasi"
+                  parent_id: null
+                  is_active: true
+                  created_at: "2026-07-24T09:00:00Z"
+                  updated_at: "2026-07-24T09:00:00Z"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              example:
+                code: 404
+                status: "error"
+                message: "department not found"
+                errors: null
+        '500':
+          description: Internal Server Error
+    put:
+      summary: Update Department
+      operationId: updateDepartment
+      description: >
+        Partial update Department — field yang tidak dikirim tidak diubah.
+        Mengubah `parent_id` memicu validasi ulang company match + cycle
+        detection (tidak boleh menjadikan department ini turunan dirinya
+        sendiri).
+      tags: [Department]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  maxLength: 20
+                name:
+                  type: string
+                  maxLength: 150
+                parent_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                is_active:
+                  type: boolean
+      responses:
+        '200':
+          description: Department updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/DepartmentResponse'
+              example:
+                code: 200
+                status: success
+                message: Department updated successfully
+                data:
+                  id: "770e8400-e29b-41d4-a716-446655440002"
+                  company_id: "550e8400-e29b-41d4-a716-446655440000"
+                  code: "TI"
+                  name: "Divisi Teknologi Informasi & Digital"
+                  parent_id: null
+                  is_active: true
+                  created_at: "2026-07-24T09:00:00Z"
+                  updated_at: "2026-07-24T10:00:00Z"
+        '400':
+          description: Bad Request (Invalid JSON payload)
+          content:
+            application/json:
+              example:
+                code: 400
+                status: "error"
+                message: "Invalid JSON payload"
+                errors: null
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              example:
+                code: 404
+                status: "error"
+                message: "department not found"
+                errors: null
+        '409':
+          description: Conflict — code sudah dipakai department lain dalam Company yang sama
+          content:
+            application/json:
+              example:
+                code: 409
+                status: "error"
+                message: "department code already registered in this company"
+                errors: null
+        '422':
+          description: Unprocessable Entity — Validation failed / parent_id beda company / cycle
+          content:
+            application/json:
+              example:
+                code: 422
+                status: "error"
+                message: "hierarchy cycle detected"
+                errors: null
+        '500':
+          description: Internal Server Error
+    delete:
+      summary: Soft Delete Department
+      operationId: deleteDepartment
+      description: >
+        Soft delete (isi `deleted_at`, bukan hard delete) — histori referensi
+        (mis. Job Position anak) tetap intact. TIDAK mem-validasi child
+        Department/Job Position (gap eksplisit, tech-spec.md §6.1).
+      tags: [Department]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Department deleted successfully
+          content:
+            application/json:
+              example:
+                code: 200
+                status: success
+                message: Department deleted successfully
+                data: null
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              example:
+                code: 404
+                status: "error"
+                message: "department not found"
+                errors: null
+        '500':
+          description: Internal Server Error
+
+  /api/v1/job-titles:
+    post:
+      summary: Create Job Title
+      operationId: createJobTitle
+      description: >
+        Daftarkan grade/pangkat baru dalam satu Company. Job Title bersifat
+        per-PT (Company-owned, bukan Global master) — dua Company boleh punya
+        `code` sama tanpa konflik.
+      tags: [JobTitle]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [company_id, code, name, grade_level]
+              properties:
+                company_id:
+                  type: string
+                  format: uuid
+                  example: "550e8400-e29b-41d4-a716-446655440000"
+                code:
+                  type: string
+                  maxLength: 20
+                  example: "MGR"
+                name:
+                  type: string
+                  maxLength: 100
+                  example: "Manajer"
+                grade_level:
+                  type: integer
+                  example: 7
+      responses:
+        '201':
+          description: Job title created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/JobTitleResponse'
+              example:
+                code: 201
+                status: success
+                message: Job title created successfully
+                data:
+                  id: "880e8400-e29b-41d4-a716-446655440003"
+                  company_id: "550e8400-e29b-41d4-a716-446655440000"
+                  code: "MGR"
+                  name: "Manajer"
+                  grade_level: 7
+                  is_active: true
+                  created_at: "2026-07-24T09:00:00Z"
+                  updated_at: "2026-07-24T09:00:00Z"
+        '400':
+          description: Bad Request (Invalid JSON payload)
+          content:
+            application/json:
+              example:
+                code: 400
+                status: "error"
+                message: "Invalid JSON payload"
+                errors: null
+        '404':
+          description: Not Found — company_id tidak dikenal
+          content:
+            application/json:
+              example:
+                code: 404
+                status: "error"
+                message: "company not found"
+                errors: null
+        '409':
+          description: Conflict — code sudah dipakai job title lain dalam Company yang sama
+          content:
+            application/json:
+              example:
+                code: 409
+                status: "error"
+                message: "job title code already registered in this company"
+                errors: null
+        '422':
+          description: Unprocessable Entity — Validation failed
+          content:
+            application/json:
+              example:
+                code: 422
+                status: "error"
+                message: "Validation failed"
+                errors:
+                  company_id: ["Kolom company_id wajib diisi."]
+                  grade_level: ["Kolom grade_level wajib diisi."]
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              example:
+                code: 500
+                status: "error"
+                message: "Failed to create job title"
+                errors: null
+    get:
+      summary: List Job Titles
+      operationId: listJobTitles
+      description: >
+        Browse semua Job Title (paginated) lintas Company — filter scope
+        per-Company baru aktif setelah modul RBAC landing (staged).
+      tags: [JobTitle]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [code, name, grade_level, created_at, updated_at]
+            default: created_at
+        - in: query
+          name: order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+        - in: query
+          name: search
+          description: Opsional. Match `code` ATAU `name` (case-insensitive substring). Kosong = tanpa filter.
+          schema:
+            type: string
+            example: "MGR"
+      responses:
+        '200':
+          description: Job titles fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/JobTitleListResponse'
+              example:
+                code: 200
+                status: success
+                message: Job titles fetched successfully
+                data:
+                  items:
+                    - id: "880e8400-e29b-41d4-a716-446655440003"
+                      company_id: "550e8400-e29b-41d4-a716-446655440000"
+                      code: "MGR"
+                      name: "Manajer"
+                      grade_level: 7
+                      is_active: true
+                      created_at: "2026-07-24T09:00:00Z"
+                      updated_at: "2026-07-24T09:00:00Z"
+                  meta:
+                    page: 1
+                    limit: 20
+                    total: 1
+        '500':
+          description: Internal Server Error
+
+  /api/v1/job-titles/{id}:
+    get:
+      summary: Get Job Title by ID
+      operationId: getJobTitleById
+      description: Ambil detail satu Job Title. Dipakai buat form edit / detail view.
+      tags: [JobTitle]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job title fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/JobTitleResponse'
+              example:
+                code: 200
+                status: success
+                message: Job title fetched successfully
+                data:
+                  id: "880e8400-e29b-41d4-a716-446655440003"
+                  company_id: "550e8400-e29b-41d4-a716-446655440000"
+                  code: "MGR"
+                  name: "Manajer"
+                  grade_level: 7
+                  is_active: true
+                  created_at: "2026-07-24T09:00:00Z"
+                  updated_at: "2026-07-24T09:00:00Z"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              example:
+                code: 404
+                status: "error"
+                message: "job title not found"
+                errors: null
+        '500':
+          description: Internal Server Error
+    put:
+      summary: Update Job Title
+      operationId: updateJobTitle
+      description: Partial update Job Title — field yang tidak dikirim tidak diubah.
+      tags: [JobTitle]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  maxLength: 20
+                name:
+                  type: string
+                  maxLength: 100
+                grade_level:
+                  type: integer
+                is_active:
+                  type: boolean
+      responses:
+        '200':
+          description: Job title updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/JobTitleResponse'
+              example:
+                code: 200
+                status: success
+                message: Job title updated successfully
+                data:
+                  id: "880e8400-e29b-41d4-a716-446655440003"
+                  company_id: "550e8400-e29b-41d4-a716-446655440000"
+                  code: "MGR"
+                  name: "Manajer Senior"
+                  grade_level: 8
+                  is_active: true
+                  created_at: "2026-07-24T09:00:00Z"
+                  updated_at: "2026-07-24T10:00:00Z"
+        '400':
+          description: Bad Request (Invalid JSON payload)
+          content:
+            application/json:
+              example:
+                code: 400
+                status: "error"
+                message: "Invalid JSON payload"
+                errors: null
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              example:
+                code: 404
+                status: "error"
+                message: "job title not found"
+                errors: null
+        '409':
+          description: Conflict — code sudah dipakai job title lain dalam Company yang sama
+          content:
+            application/json:
+              example:
+                code: 409
+                status: "error"
+                message: "job title code already registered in this company"
+                errors: null
+        '422':
+          description: Unprocessable Entity — Validation failed
+          content:
+            application/json:
+              example:
+                code: 422
+                status: "error"
+                message: "Validation failed"
+                errors:
+                  code: ["Kolom code maksimal 20 karakter."]
+        '500':
+          description: Internal Server Error
+    delete:
+      summary: Soft Delete Job Title
+      operationId: deleteJobTitle
+      description: Soft delete (isi `deleted_at`, bukan hard delete).
+      tags: [JobTitle]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job title deleted successfully
+          content:
+            application/json:
+              example:
+                code: 200
+                status: success
+                message: Job title deleted successfully
+                data: null
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              example:
+                code: 404
+                status: "error"
+                message: "job title not found"
+                errors: null
+        '500':
+          description: Internal Server Error
+
+  /api/v1/job-positions:
+    post:
+      summary: Create Job Position
+      operationId: createJobPosition
+      description: >
+        Buat "kursi" jabatan aktual = kombinasi Department x Job Title.
+        `company_id` TIDAK di-input client — diturunkan otomatis dari
+        `department_id` (lihat decision-log.md ADR-001). Department & Job
+        Title wajib satu Company; `reports_to_id` (kalau diisi) wajib posisi
+        di Company yang sama dan tidak boleh membentuk siklus reporting line.
+      tags: [JobPosition]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [department_id, job_title_id, name]
+              properties:
+                department_id:
+                  type: string
+                  format: uuid
+                  example: "770e8400-e29b-41d4-a716-446655440002"
+                job_title_id:
+                  type: string
+                  format: uuid
+                  example: "880e8400-e29b-41d4-a716-446655440003"
+                name:
+                  type: string
+                  maxLength: 150
+                  example: "Manajer Pengembangan"
+                reports_to_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                  example: "990e8400-e29b-41d4-a716-446655440004"
+                headcount_quota:
+                  type: integer
+                  minimum: 1
+                  description: Opsional — default 1 kalau tidak diisi (decision-log.md ADR-003).
+                  example: 3
+      responses:
+        '201':
+          description: Job position created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/JobPositionResponse'
+              example:
+                code: 201
+                status: success
+                message: Job position created successfully
+                data:
+                  id: "aa0e8400-e29b-41d4-a716-446655440005"
+                  company_id: "550e8400-e29b-41d4-a716-446655440000"
+                  department:
+                    id: "770e8400-e29b-41d4-a716-446655440002"
+                    name: "Divisi Teknologi Informasi"
+                  job_title:
+                    id: "880e8400-e29b-41d4-a716-446655440003"
+                    name: "Manajer"
+                  name: "Manajer Pengembangan"
+                  reports_to_id: "990e8400-e29b-41d4-a716-446655440004"
+                  headcount_quota: 3
+                  is_active: true
+                  created_at: "2026-07-24T09:00:00Z"
+                  updated_at: "2026-07-24T09:00:00Z"
+        '400':
+          description: Bad Request (Invalid JSON payload)
+          content:
+            application/json:
+              example:
+                code: 400
+                status: "error"
+                message: "Invalid JSON payload"
+                errors: null
+        '404':
+          description: Not Found — department_id, job_title_id, atau reports_to_id tidak dikenal
+          content:
+            application/json:
+              example:
+                code: 404
+                status: "error"
+                message: "department not found"
+                errors: null
+        '422':
+          description: >
+            Unprocessable Entity — Validation failed / department & job_title
+            beda company / reports_to_id beda company / reporting cycle
+          content:
+            application/json:
+              example:
+                code: 422
+                status: "error"
+                message: "reports-to position belongs to a different company"
+                errors: null
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              example:
+                code: 500
+                status: "error"
+                message: "Failed to create job position"
+                errors: null
+    get:
+      summary: List Job Positions
+      operationId: listJobPositions
+      description: >
+        Browse semua Job Position (paginated) lintas Company — dipakai buat
+        halaman manajemen data/tabel. Beda dari `GET /job-positions/chart`:
+        endpoint itu TANPA pagination, khusus buat render Organization Chart
+        utuh (lihat decision-log.md ADR-004).
+      tags: [JobPosition]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [name, headcount_quota, created_at, updated_at]
+            default: created_at
+        - in: query
+          name: order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+        - in: query
+          name: search
+          description: Opsional. Match `name` (case-insensitive substring) — Job Position gak punya kolom `code`. Kosong = tanpa filter.
+          schema:
+            type: string
+            example: "Manajer"
+      responses:
+        '200':
+          description: Job positions fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/JobPositionListResponse'
+              example:
+                code: 200
+                status: success
+                message: Job positions fetched successfully
+                data:
+                  items:
+                    - id: "aa0e8400-e29b-41d4-a716-446655440005"
+                      company_id: "550e8400-e29b-41d4-a716-446655440000"
+                      department:
+                        id: "770e8400-e29b-41d4-a716-446655440002"
+                        name: "Divisi Teknologi Informasi"
+                      job_title:
+                        id: "880e8400-e29b-41d4-a716-446655440003"
+                        name: "Manajer"
+                      name: "Manajer Pengembangan"
+                      reports_to_id: "990e8400-e29b-41d4-a716-446655440004"
+                      headcount_quota: 3
+                      is_active: true
+                      created_at: "2026-07-24T09:00:00Z"
+                      updated_at: "2026-07-24T09:00:00Z"
+                  meta:
+                    page: 1
+                    limit: 20
+                    total: 1
+        '500':
+          description: Internal Server Error
+
+  /api/v1/job-positions/chart:
+    get:
+      summary: Get Full Organization Chart
+      operationId: getJobPositionsChart
+      description: >
+        Kembalikan SEMUA Job Position aktif dalam scope caller TANPA
+        pagination, dipakai FE bangun tree org chart utuh dari
+        `reports_to_id` (root = `reports_to_id: null`). Endpoint terpisah
+        dari `GET /job-positions` yang paginated — org chart butuh keutuhan
+        data, bukan satu halaman (decision-log.md ADR-004). Dataset per-
+        company diasumsikan kecil (ratusan row).
+      tags: [JobPosition]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Job position chart fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JobPositionResponse'
+                    description: SELALU array (`[]` kalau kosong) — TIDAK PERNAH `null`. TANPA `meta` (bukan paginated).
+              example:
+                code: 200
+                status: success
+                message: Job position chart fetched successfully
+                data:
+                  - id: "990e8400-e29b-41d4-a716-446655440004"
+                    company_id: "550e8400-e29b-41d4-a716-446655440000"
+                    department:
+                      id: "770e8400-e29b-41d4-a716-446655440002"
+                      name: "Divisi Teknologi Informasi"
+                    job_title:
+                      id: "880e8400-e29b-41d4-a716-446655440003"
+                      name: "Direktur"
+                    name: "Direktur Teknologi"
+                    reports_to_id: null
+                    headcount_quota: 1
+                    is_active: true
+                    created_at: "2026-07-24T09:00:00Z"
+                    updated_at: "2026-07-24T09:00:00Z"
+                  - id: "aa0e8400-e29b-41d4-a716-446655440005"
+                    company_id: "550e8400-e29b-41d4-a716-446655440000"
+                    department:
+                      id: "770e8400-e29b-41d4-a716-446655440002"
+                      name: "Divisi Teknologi Informasi"
+                    job_title:
+                      id: "880e8400-e29b-41d4-a716-446655440003"
+                      name: "Manajer"
+                    name: "Manajer Pengembangan"
+                    reports_to_id: "990e8400-e29b-41d4-a716-446655440004"
+                    headcount_quota: 3
+                    is_active: true
+                    created_at: "2026-07-24T09:00:00Z"
+                    updated_at: "2026-07-24T09:00:00Z"
+        '500':
+          description: Internal Server Error
+
+  /api/v1/job-positions/{id}:
+    get:
+      summary: Get Job Position by ID
+      operationId: getJobPositionById
+      description: Ambil detail satu Job Position. Dipakai buat form edit / detail view.
+      tags: [JobPosition]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job position fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/JobPositionResponse'
+              example:
+                code: 200
+                status: success
+                message: Job position fetched successfully
+                data:
+                  id: "aa0e8400-e29b-41d4-a716-446655440005"
+                  company_id: "550e8400-e29b-41d4-a716-446655440000"
+                  department:
+                    id: "770e8400-e29b-41d4-a716-446655440002"
+                    name: "Divisi Teknologi Informasi"
+                  job_title:
+                    id: "880e8400-e29b-41d4-a716-446655440003"
+                    name: "Manajer"
+                  name: "Manajer Pengembangan"
+                  reports_to_id: "990e8400-e29b-41d4-a716-446655440004"
+                  headcount_quota: 3
+                  is_active: true
+                  created_at: "2026-07-24T09:00:00Z"
+                  updated_at: "2026-07-24T09:00:00Z"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              example:
+                code: 404
+                status: "error"
+                message: "job position not found"
+                errors: null
+        '500':
+          description: Internal Server Error
+    put:
+      summary: Update Job Position
+      operationId: updateJobPosition
+      description: >
+        Partial update Job Position — field yang tidak dikirim tidak diubah.
+        Mengubah `department_id`/`job_title_id` memicu validasi ulang company
+        match; mengubah `reports_to_id` memicu validasi company match + cycle
+        detection.
+      tags: [JobPosition]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                department_id:
+                  type: string
+                  format: uuid
+                job_title_id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                  maxLength: 150
+                reports_to_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                headcount_quota:
+                  type: integer
+                  minimum: 1
+                is_active:
+                  type: boolean
+      responses:
+        '200':
+          description: Job position updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/JobPositionResponse'
+              example:
+                code: 200
+                status: success
+                message: Job position updated successfully
+                data:
+                  id: "aa0e8400-e29b-41d4-a716-446655440005"
+                  company_id: "550e8400-e29b-41d4-a716-446655440000"
+                  department:
+                    id: "770e8400-e29b-41d4-a716-446655440002"
+                    name: "Divisi Teknologi Informasi"
+                  job_title:
+                    id: "880e8400-e29b-41d4-a716-446655440003"
+                    name: "Manajer"
+                  name: "Manajer Pengembangan Senior"
+                  reports_to_id: "990e8400-e29b-41d4-a716-446655440004"
+                  headcount_quota: 4
+                  is_active: true
+                  created_at: "2026-07-24T09:00:00Z"
+                  updated_at: "2026-07-24T10:00:00Z"
+        '400':
+          description: Bad Request (Invalid JSON payload)
+          content:
+            application/json:
+              example:
+                code: 400
+                status: "error"
+                message: "Invalid JSON payload"
+                errors: null
+        '404':
+          description: Not Found — job position, department_id, atau job_title_id tidak dikenal
+          content:
+            application/json:
+              example:
+                code: 404
+                status: "error"
+                message: "job position not found"
+                errors: null
+        '422':
+          description: >
+            Unprocessable Entity — Validation failed / company mismatch /
+            reporting cycle
+          content:
+            application/json:
+              example:
+                code: 422
+                status: "error"
+                message: "hierarchy cycle detected"
+                errors: null
+        '500':
+          description: Internal Server Error
+    delete:
+      summary: Soft Delete Job Position
+      operationId: deleteJobPosition
+      description: >
+        Soft delete (isi `deleted_at`, bukan hard delete). TIDAK mem-validasi
+        apakah masih ada Job Position lain yang `reports_to_id` menunjuk ke
+        sini (gap eksplisit, tech-spec.md §6.3 poin 6).
+      tags: [JobPosition]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job position deleted successfully
+          content:
+            application/json:
+              example:
+                code: 200
+                status: success
+                message: Job position deleted successfully
+                data: null
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              example:
+                code: 404
+                status: "error"
+                message: "job position not found"
+                errors: null
+        '500':
+          description: Internal Server Error
