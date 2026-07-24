@@ -68,7 +68,7 @@ func (h *Handler) ListCompanies(c fiber.Ctx) error {
 	if err != nil {
 		return serverError(c, err, "Failed to fetch companies")
 	}
-	return response.Success(c, fiber.StatusOK, "Companies fetched successfully", res)
+	return response.SuccessList(c, fiber.StatusOK, "Companies fetched successfully", res.Items, res.Meta)
 }
 
 func (h *Handler) GetCompany(c fiber.Ctx) error {
@@ -158,7 +158,7 @@ func (h *Handler) ListBranchesByCompany(c fiber.Ctx) error {
 		}
 		return serverError(c, err, "Failed to fetch branches")
 	}
-	return response.Success(c, fiber.StatusOK, "Branches fetched successfully", res)
+	return response.SuccessList(c, fiber.StatusOK, "Branches fetched successfully", res.Items, res.Meta)
 }
 
 func (h *Handler) GetBranch(c fiber.Ctx) error {
