@@ -8,15 +8,17 @@ const (
 	MaxLimit     = 100
 )
 
-// Request adalah parameter halaman + sort mentah dari client (query param
-// page/limit/sort/order). Sort adalah logical key dari client (mis. "name"),
-// BUKAN nama kolom DB asli — resolusinya lewat OrderClause + SortMap supaya
-// gak ada raw client string yang nyampe ke GORM Order() (SQL injection).
+// Request adalah parameter halaman + sort + search mentah dari client (query
+// param page/limit/sort/order/search). Sort adalah logical key dari client
+// (mis. "name"), BUKAN nama kolom DB asli — resolusinya lewat OrderClause +
+// SortMap supaya gak ada raw client string yang nyampe ke GORM Order() (SQL
+// injection). Search sama prinsipnya lewat SearchClause + whitelist kolom.
 type Request struct {
-	Page  int
-	Limit int
-	Sort  string
-	Order string // "asc" | "desc"
+	Page   int
+	Limit  int
+	Sort   string
+	Order  string // "asc" | "desc"
+	Search string // opsional; kosong = tanpa filter search
 }
 
 // Normalize mengisi default (page=1, limit=20, order=asc) dan meng-cap limit
@@ -60,6 +62,32 @@ func (r Request) OrderClause(allowed SortMap, defaultSort string) string {
 		dir = "DESC"
 	}
 	return col + " " + dir
+}
+
+// SearchClause mengembalikan klausa "(col1 ILIKE ? OR col2 ILIKE ? ...)" aman
+// buat GORM .Where(clause, args...) beserta args-nya (satu "%search%" per
+// kolom), atau ("", nil) kalau Search kosong atau columns kosong. columns
+// WAJIB whitelist eksplisit oleh caller (adapter) — alasan sama seperti
+// SortMap: jangan pernah teruskan nama kolom mentah dari client (SQL
+// injection lewat Order()/Where() string mentah, pagination-convention.md §3).
+//
+// Dipakai buat kasus search same-table sederhana (mis. WHERE code ILIKE ?
+// OR name ILIKE ?). Kasus search lintas-table (mis. Company match nama
+// Branch anaknya via EXISTS subquery — lihat organization tech-spec.md §6.1)
+// TETAP boleh ditulis manual di adapter, di luar helper ini — bukan
+// pelanggaran, itu pengecualian terdokumentasi (pagination-convention.md §3).
+func (r Request) SearchClause(columns ...string) (string, []any) {
+	if r.Search == "" || len(columns) == 0 {
+		return "", nil
+	}
+	like := "%" + r.Search + "%"
+	parts := make([]string, len(columns))
+	args := make([]any, len(columns))
+	for i, c := range columns {
+		parts[i] = c + " ILIKE ?"
+		args[i] = like
+	}
+	return "(" + strings.Join(parts, " OR ") + ")", args
 }
 
 // Meta adalah metadata halaman yang dikembalikan ke client bersama Items.
