@@ -5,11 +5,11 @@ info:
   description: >
     API untuk modul Organization scope 2.1.2 — Company (legal entity/PT) &
     Branch (cabang/lokasi). Lihat docs/PRD/organization.md. Endpoint
-    Departments/JobTitles/JobPositions versi lama sudah tidak didokumentasikan
-    di sini (dipindah scope-nya ke modul workforce-structure per PRD breaking
-    change) — kode existing-nya (`internal/domain/organization`, dst) masih
-    hidup untuk sementara tapi bukan bagian dari contract modul Organization
-    ini lagi. v2.1.0: `GET /api/v1/companies` embed nested `branches` per
+    Departments/JobTitles/JobPositions versi lama sudah dipindah scope-nya ke
+    modul workforce-structure (lihat swagger/workforce-structure.yaml) — kode
+    existing-nya (`internal/domain/organization`, dst) sudah dihapus
+    seluruhnya (decision-log.md ADR-005 workforce-structure). v2.1.0: `GET
+    /api/v1/companies` embed nested `branches` per
     company + tambah query param `search` (match `legal_name` atau nama
     branch). v2.1.1: response schema komponen (`CompanyResponse`,
     `BranchResponse`) sekarang eksplisit tandai field `nullable` (`npwp`,

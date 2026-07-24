@@ -8,17 +8,18 @@ package di
 
 import (
 	"github.com/bagusyanuar/hris-backend/internal/application/employee"
-	"github.com/bagusyanuar/hris-backend/internal/application/organization"
 	"github.com/bagusyanuar/hris-backend/internal/auth/application"
 	"github.com/bagusyanuar/hris-backend/internal/auth/domain"
 	"github.com/bagusyanuar/hris-backend/internal/auth/transport/http"
 	"github.com/bagusyanuar/hris-backend/internal/infrastructure/repository"
 	employee2 "github.com/bagusyanuar/hris-backend/internal/interfaces/http/employee"
-	organization2 "github.com/bagusyanuar/hris-backend/internal/interfaces/http/organization"
 	adapter2 "github.com/bagusyanuar/hris-backend/internal/organization/adapter"
 	application2 "github.com/bagusyanuar/hris-backend/internal/organization/application"
 	http2 "github.com/bagusyanuar/hris-backend/internal/organization/transport/http"
 	"github.com/bagusyanuar/hris-backend/internal/user/adapter"
+	adapter3 "github.com/bagusyanuar/hris-backend/internal/workforce/adapter"
+	application3 "github.com/bagusyanuar/hris-backend/internal/workforce/application"
+	http3 "github.com/bagusyanuar/hris-backend/internal/workforce/transport/http"
 	"github.com/google/wire"
 	"gorm.io/gorm"
 )
@@ -29,9 +30,6 @@ func InitializeAPI(db *gorm.DB, tokenGen domain.TokenGenerator) (*APIHandlers, e
 	domainRepository := adapter.NewUserRepository(db)
 	service := application.NewService(domainRepository, tokenGen)
 	handler := http.NewHandler(service)
-	organizationRepository := repository.NewOrganizationRepository(db)
-	organizationService := organization.NewService(organizationRepository)
-	organizationHandler := organization2.NewHandler(organizationService)
 	employeeRepository := repository.NewEmployeeRepository(db)
 	employeeService := employee.NewService(employeeRepository)
 	employeeHandler := employee2.NewHandler(employeeService)
@@ -40,19 +38,25 @@ func InitializeAPI(db *gorm.DB, tokenGen domain.TokenGenerator) (*APIHandlers, e
 	txManager := adapter2.NewGormTxManager(db)
 	applicationService := application2.NewService(companyRepository, branchRepository, txManager)
 	httpHandler := http2.NewHandler(applicationService)
+	departmentRepository := adapter3.NewDepartmentRepository(db)
+	jobTitleRepository := adapter3.NewJobTitleRepository(db)
+	jobPositionRepository := adapter3.NewJobPositionRepository(db)
+	domainTxManager := adapter3.NewGormTxManager(db)
+	service2 := application3.NewService(departmentRepository, jobTitleRepository, jobPositionRepository, domainTxManager, applicationService)
+	handler2 := http3.NewHandler(service2)
 	apiHandlers := &APIHandlers{
 		Auth:         handler,
-		Org:          organizationHandler,
 		Employee:     employeeHandler,
 		Organization: httpHandler,
+		Workforce:    handler2,
 	}
 	return apiHandlers, nil
 }
 
 // wire.go:
 
-var RepositorySet = wire.NewSet(adapter.NewUserRepository, repository.NewOrganizationRepository, repository.NewEmployeeRepository, adapter2.NewCompanyRepository, adapter2.NewBranchRepository, adapter2.NewGormTxManager)
+var RepositorySet = wire.NewSet(adapter.NewUserRepository, repository.NewEmployeeRepository, adapter2.NewCompanyRepository, adapter2.NewBranchRepository, adapter2.NewGormTxManager, adapter3.NewDepartmentRepository, adapter3.NewJobTitleRepository, adapter3.NewJobPositionRepository, adapter3.NewGormTxManager)
 
-var ServiceSet = wire.NewSet(application.NewService, organization.NewService, employee.NewService, application2.NewService)
+var ServiceSet = wire.NewSet(application.NewService, employee.NewService, application2.NewService, application3.NewService)
 
-var HandlerSet = wire.NewSet(http.NewHandler, organization2.NewHandler, employee2.NewHandler, http2.NewHandler, wire.Struct(new(APIHandlers), "*"))
+var HandlerSet = wire.NewSet(http.NewHandler, employee2.NewHandler, http2.NewHandler, http3.NewHandler, wire.Struct(new(APIHandlers), "*"))

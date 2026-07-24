@@ -90,10 +90,13 @@ func (r *companyRepository) FindByID(ctx context.Context, id string) (*domain.Co
 }
 
 func (r *companyRepository) FindAll(ctx context.Context, page, limit int, sort, order, search string) ([]*domain.Company, int64, error) {
-	req := pagination.Request{Page: page, Limit: limit, Sort: sort, Order: order}
+	req := pagination.Request{Page: page, Limit: limit, Sort: sort, Order: order, Search: search}
 	db := dbFromContext(ctx, r.db).Order(req.OrderClause(companySortMap, "created_at"))
-	if search != "" {
-		like := "%" + search + "%"
+	// Search lintas-table (legal_name sendiri ATAU nama Branch anaknya) — di luar
+	// scope pagination.Request.SearchClause (cuma same-table). Pengecualian
+	// terdokumentasi, pagination-convention.md §3.
+	if req.Search != "" {
+		like := "%" + req.Search + "%"
 		db = db.Where(
 			"legal_name ILIKE ? OR EXISTS (SELECT 1 FROM branches b WHERE b.company_id = companies.id AND b.name ILIKE ? AND b.deleted_at IS NULL)",
 			like, like,

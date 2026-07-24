@@ -12,5 +12,6 @@ services:
           { "url": "swagger/auth.yaml", "name": "Auth API" },
           { "url": "swagger/employee.yaml", "name": "Employee API" },
           { "url": "swagger/organization.yaml", "name": "Organization API" },
-          { "url": "swagger/user.yaml", "name": "User API" }
+          { "url": "swagger/user.yaml", "name": "User API" },
+          { "url": "swagger/workforce-structure.yaml", "name": "Workforce Structure API" }
         ]

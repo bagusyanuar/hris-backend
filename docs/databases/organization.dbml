@@ -2,7 +2,7 @@
 // Source: docs/PRD/organization.md (v2.0.0)
 // Scope 2.0.0: HANYA Company & Branch (legal entity + lokasi).
 // Department/Job Title/Job Position PINDAH ke docs/PRD/workforce-structure.md
-// dan akan tinggal di docs/databases/workforce_structure.dbml (belum dibuat — di luar scope task ini).
+// dan tinggal di docs/databases/workforce-structure.dbml.
 
 Project HRIS_Organization {
   database_type: 'PostgreSQL'
