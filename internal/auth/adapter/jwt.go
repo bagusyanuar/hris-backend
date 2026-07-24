@@ -79,7 +79,7 @@ func (s *jwtService) GenerateTokenPair(userID string, role string) (*domain.Toke
 }
 
 func (s *jwtService) ValidateToken(tokenString string, expectedType string) (*domain.TokenClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &jwtClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &jwtClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
 		}

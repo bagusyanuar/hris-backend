@@ -40,7 +40,12 @@ This skill contains rules that MUST be followed when writing, refactoring, or re
 * **Fiber Handlers Must Not Panic:** HTTP handlers are the outermost boundary — an unrecovered panic here kills the request (and, without a recover middleware, can crash the goroutine). Validate/parse request bodies via `pkg/validator` before touching fields, and guard against nil on anything fetched from `c.Locals(...)`.
 * **Division & Numeric Conversion:** Guard against division by zero and out-of-range numeric conversions (e.g., `int64` to `int32`) when the divisor or source value originates from user input or calculation (payroll, attendance).
 
-## 8. Goroutine Usage — When to Use, When to Avoid
+## 8. Modern Go Syntax (go.mod: go 1.26.3)
+* **`any` instead of `interface{}`:** Go 1.18+ alias. ALWAYS use `any` in new/edited code — function signatures, struct fields, type params. `interface{}` triggers a vet/gopls hint ("can be replaced by any") and is dead weight in a codebase on 1.26. Existing `interface{}` left untouched during an unrelated edit is fine (don't scope-creep a diff just to rename it), but any file you're already touching should have its `interface{}` occurrences converted.
+* **`min`/`max` builtins:** Use built-in `min(a, b)` / `max(a, b)` (Go 1.21+) instead of a manual `if`-else or a hand-rolled helper function.
+* Don't chase every new Go release feature reflexively — only adopt idioms that are unambiguously better (less code, same or clearer meaning) and already stable for several Go versions, not preview/experimental syntax.
+
+## 9. Goroutine Usage — When to Use, When to Avoid
 * **FORBIDDEN to spawn goroutines inside a single DB transaction.** A `*gorm.DB` carrying an active transaction (`TxManager.Do`, see [persistence-convention.md](../../rules/persistence-convention.md) §2) is **NOT thread-safe**. Never spawn goroutines that query/write using the same `tx` concurrently — this causes race conditions and partial writes with no compile-time error.
 * **Safe to use for:**
   - **Independent read-only fan-out**: fetch data from multiple Application Services/bounded contexts in parallel (e.g., dashboard aggregation: Employee + Organization + Attendance), each outside any transaction, merged using `errgroup` (`golang.org/x/sync/errgroup`) so one goroutine's error propagates correctly and the context cancels the rest.
